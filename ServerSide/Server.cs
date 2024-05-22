@@ -35,8 +35,9 @@ public class Server
 
         _listener.AuthenticationSchemes = AuthenticationSchemes.Digest;
         _listener.*/
-        
+        Console.WriteLine($"Starting thread...");
         _processThread.Start();
+        Console.WriteLine($"[Thread started]");
     }
 
     public void Stop()
@@ -47,8 +48,9 @@ public class Server
 
     private async Task ProcessRequests(CancellationToken cancelToken)
     {
-        Console.WriteLine("THREAD: WAITING FOR CONTEXT");
+        Console.WriteLine("THREAD: STARTING LISTENER...");
         _listener.Start();
+        Console.WriteLine("THREAD: [LISTENER STARTED]");
         
         while (!cancelToken.IsCancellationRequested)
         {
@@ -57,9 +59,10 @@ public class Server
                 const string messageOut = "<HTML><BODY><p>Test1, Test2, Test3, end.</p></BODY></HTML>";
                 var messageBuffer = _stringToByte(messageOut);
 
-                Console.WriteLine("THREAD: WAITING FOR CONTEXT");
+                Console.WriteLine("THREAD: WAITING FOR CONTEXT...");
                 var context = await _listener.GetContextAsync();
-                Console.WriteLine("THREAD: CONTEXT RECEIVED");
+                Console.WriteLine("THREAD: [CONTEXT RECEIVED]");
+                
                 var response = context.Response;
                 response.StatusCode = (int)HttpStatusCode.OK;
                 response.StatusDescription = "OK";
@@ -73,10 +76,6 @@ public class Server
             catch (Exception ex)
             {
                 Console.WriteLine($"THREAD: HTTP server error: {ex.Message}");
-            }
-            finally
-            {
-                _listener.Stop();
             }
         }
         
