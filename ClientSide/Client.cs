@@ -17,7 +17,6 @@ public class Client
         try
         {
             var response = await client.GetAsync($"http://{_ip}:{_port}/");
-            //var response = await client.GetAsync($"http://{_ip}:{_port}/"); // prev
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsStringAsync();
         }

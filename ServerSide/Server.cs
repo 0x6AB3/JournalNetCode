@@ -10,8 +10,6 @@ public class Server
     private readonly Thread _processThread;
     private readonly CancellationTokenSource _processCancelTokenSrc;
     
-    private readonly Func<string, byte[]> _stringToByte = plaintext => Encoding.UTF8.GetBytes(plaintext);
-    
     ~Server()
     {
         Stop();
@@ -56,21 +54,15 @@ public class Server
         {
             try
             {
-                const string messageOut = "<HTML><BODY><p>Test1, Test2, Test3, end.</p></BODY></HTML>";
-                var messageBuffer = _stringToByte(messageOut);
+                const string message = "<HTML><BODY><p>Test1, Test2, Test3, end.</p></BODY></HTML>";
 
                 Console.WriteLine("THREAD: WAITING FOR CONTEXT...");
                 var context = await _listener.GetContextAsync();
                 Console.WriteLine("THREAD: [CONTEXT RECEIVED]");
-                
-                var response = context.Response;
-                response.StatusCode = (int)HttpStatusCode.OK;
-                response.StatusDescription = "OK";
-                response.ContentLength64 = messageBuffer.LongLength;
-                response.ContentType = "text/html";
-                response.OutputStream.Write(messageBuffer);
-                response.OutputStream.Close();
-                response.Close();
+
+                ClientInterface newClient = new ClientInterface(context.Request, message);
+                newClient.ProcessRequest(context.Response);
+
                 Console.WriteLine("THREAD: RESPONSE SENT OUT");
             }
             catch (Exception ex)
