@@ -1,18 +1,17 @@
-﻿using System.Text;
-using System.Net;
+﻿using System.Net;
+using JournalNetCode.Common.;
 
 namespace JournalNetCode.ServerSide;
 
 public class ClientInterface
 {
     private IPEndPoint _endPoint;
-    private byte[] _messageOut;
-    private readonly Func<string, byte[]> _stringToByte = plaintext => Encoding.UTF8.GetBytes(plaintext);
+    private readonly byte[] _messageOut;
 
     public ClientInterface(HttpListenerRequest request, string message)
     {
         _endPoint = request.RemoteEndPoint;
-        _messageOut = _stringToByte(message);
+        _messageOut = StringToBytes.Convert(message);
     }
 
     public void ProcessRequest(HttpListenerResponse response)

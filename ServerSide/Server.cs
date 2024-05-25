@@ -1,6 +1,4 @@
 ﻿using System.Net;
-using System.Text;
-using System.Security.Cryptography.X509Certificates;
 
 namespace JournalNetCode.ServerSide;
 
@@ -25,7 +23,7 @@ public class Server
     }
     
     public void Start()
-    {/*
+    {/*                         ADD CERTIFICATE
         X509Certificate2 certificate = new X509Certificate2(
             "Localhost-Certificate.pfx",
             "PGCT2024",
@@ -41,7 +39,6 @@ public class Server
     public void Stop()
     {
         _processCancelTokenSrc.Cancel(); // Graceful shutdown
-        //_listener.Stop();
     }
 
     private async Task ProcessRequests(CancellationToken cancelToken)
@@ -58,6 +55,7 @@ public class Server
 
                 Console.WriteLine("THREAD: WAITING FOR CONTEXT...");
                 var context = await _listener.GetContextAsync();
+                
                 Console.WriteLine("THREAD: [CONTEXT RECEIVED]");
 
                 ClientInterface newClient = new ClientInterface(context.Request, message);
