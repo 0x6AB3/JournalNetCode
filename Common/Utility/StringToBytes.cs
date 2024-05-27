@@ -1,9 +1,9 @@
 ﻿using System.Text;
 
-namespace JournalNetCode.Common.Util;
+namespace JournalNetCode.Common.Utility;
 
 // UTF-8 encoding
-public sealed class Cast
+public static class Cast
 {
     
     private static readonly Encoding EncodingType = Encoding.UTF8;

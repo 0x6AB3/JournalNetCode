@@ -1,5 +1,5 @@
 ﻿using System.Security.Cryptography;
-using JournalNetCode.Common.Util;
+using JournalNetCode.Common.Utility;
 
 namespace JournalNetCode.Common.Security;
 
@@ -17,7 +17,7 @@ public class Pbkdf2
     
     public byte[] GetHash(string base64Password, string base64Salt)
     {
-        return GetHash(Util.Cast.Base64ToBytes(base64Password), Util.Cast.Base64ToBytes(base64Salt));
+        return GetHash(Cast.Base64ToBytes(base64Password), Cast.Base64ToBytes(base64Salt));
     }
     
     private byte[] GetHash(byte[] password, byte[] salt)

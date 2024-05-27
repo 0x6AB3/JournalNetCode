@@ -58,8 +58,8 @@ public class Server
                 
                 Console.WriteLine("THREAD: [CONTEXT RECEIVED]");
 
-                ClientInterface newClient = new ClientInterface(context.Request, message);
-                newClient.ProcessRequest(context.Response);
+                var newClient = new ClientInterface(context.Request, message);
+                newClient.SendResponse(context.Response);
 
                 Console.WriteLine("THREAD: RESPONSE SENT OUT");
             }
