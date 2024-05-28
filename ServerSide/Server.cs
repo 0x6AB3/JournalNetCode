@@ -1,4 +1,6 @@
 ﻿using System.Net;
+using JournalNetCode.ServerSide.ClientHandling;
+using JournalNetCode.ServerSide.Logging;
 
 namespace JournalNetCode.ServerSide;
 
@@ -11,12 +13,15 @@ public class Server
     ~Server()
     {
         Stop();
+        Logger.ToFile();
+        Console.WriteLine("SERVER DESTRUCTOR END");
     }
     
     public Server(string ipAddress = "127.0.0.1", int port = 80)
     {
         _listener = new HttpListener();
         _listener.Prefixes.Add($"http://{ipAddress}:{port}/");
+        Logger.AppendMessage($"SERVER LISTENING AT http://{ipAddress}:{port}/");
         
         _processCancelTokenSrc = new CancellationTokenSource();
         _processThread = new Thread(() => ProcessRequests(_processCancelTokenSrc.Token));
@@ -31,9 +36,9 @@ public class Server
 
         _listener.AuthenticationSchemes = AuthenticationSchemes.Digest;
         _listener.*/
-        Console.WriteLine($"Starting thread...");
+        Logger.AppendMessage("Starting thread...");
         _processThread.Start();
-        Console.WriteLine($"[Thread started]");
+        Logger.AppendMessage("Thread started");
     }
 
     public void Stop()
@@ -43,9 +48,9 @@ public class Server
 
     private async Task ProcessRequests(CancellationToken cancelToken)
     {
-        Console.WriteLine("THREAD: STARTING LISTENER...");
+        Logger.AppendMessage("THREAD STARTING LISTENER...");
         _listener.Start();
-        Console.WriteLine("THREAD: [LISTENER STARTED]");
+        Logger.AppendMessage("THREAD LISTENER STARTED");
         
         while (!cancelToken.IsCancellationRequested)
         {
@@ -53,19 +58,20 @@ public class Server
             {
                 const string message = "<HTML><BODY><p>Test1, Test2, Test3, end.</p></BODY></HTML>";
 
-                Console.WriteLine("THREAD: WAITING FOR CONTEXT...");
+                Logger.AppendMessage("THREAD WAITING FOR CONTEXT...");
                 var context = await _listener.GetContextAsync();
                 
-                Console.WriteLine("THREAD: [CONTEXT RECEIVED]");
+                Logger.AppendMessage("THREAD CONTEXT RECEIVED");
 
                 var newClient = new ClientInterface(context.Request, message);
                 newClient.SendResponse(context.Response);
+                ClientCollection.AddClient(newClient);
 
-                Console.WriteLine("THREAD: RESPONSE SENT OUT");
+                Logger.AppendMessage("THREAD RESPONSE SENT OUT");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"THREAD: HTTP server error: {ex.Message}");
+                Logger.AppendMessage($"THREAD HTTP server error: {ex.Message}");
             }
         }
         

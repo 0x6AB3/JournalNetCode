@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using JournalNetCode.Common.Utility;
 
-namespace JournalNetCode.ServerSide;
+namespace JournalNetCode.ServerSide.ClientHandling;
 
 public class ClientInterface
 {
