@@ -2,11 +2,10 @@
 
 namespace JournalNetCode.Common.Utility;
 
-// UTF-8 encoding
 public static class Cast
 {
     
-    private static readonly Encoding EncodingType = Encoding.UTF8;
+    private static readonly Encoding EncodingType = Encoding.UTF8; // UTF-8 encoding for string operations
     public static readonly Func<string, byte[]> StringToBytes = plaintext => EncodingType.GetBytes(plaintext);
     public static readonly Func<byte[], string> BytesToString = bytes => EncodingType.GetString(bytes);
     public static readonly Func<string, byte[]> Base64ToBytes = base64 => Convert.FromBase64String(base64);

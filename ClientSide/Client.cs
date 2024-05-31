@@ -1,4 +1,7 @@
-﻿namespace JournalNetCode.ClientSide;
+﻿using System.Text;
+using System.Net.Mail;
+
+namespace JournalNetCode.ClientSide;
 
 public class Client
 {
@@ -11,7 +14,17 @@ public class Client
         _port = port;
     }
 
-    public async Task<string?> RetrieveContent()
+    public bool SignUp(string email, string password)
+    {
+        return false;
+        if (MailAddress.TryCreate(email, out _)) // Valdiate email
+        {
+            //var hashingAlgorithm = new PBKDF2();
+            //hashingAlgorithm.GetHash(password)
+        }
+    }
+
+    private async Task<string?> RetrieveContent()
     {
         using var client = new HttpClient();
         try
@@ -24,6 +37,24 @@ public class Client
         {
             Console.WriteLine($"CLIENT REQUEST ERROR: {ex.Message}");
             return null;
+        }
+    }
+
+    public async Task SendContent(string message = "test")
+    {
+        using var client = new HttpClient();
+        var content = new StringContent(message, Encoding.UTF8, "text/plain");
+        var response = await client.PostAsync($"http://{_ip}:{_port}/", content);
+
+        try
+        {
+            response.EnsureSuccessStatusCode();
+            var responseContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"CLIENT POST [{message}] to {_ip}:{_port} GOT [{responseContent}]");
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"CLIENT REQUEST ERROR: {ex.Message}");
         }
     }
 }

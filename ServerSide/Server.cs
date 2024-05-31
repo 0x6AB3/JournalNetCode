@@ -13,12 +13,11 @@ public class Server
     ~Server()
     {
         Stop();
-        Logger.ToFile();
-        Console.WriteLine("SERVER DESTRUCTOR END");
     }
     
-    public Server(string ipAddress = "127.0.0.1", int port = 80)
+    public Server(string ipAddress = "127.0.0.1", int port = 80, bool printLogs = false)
     {
+        Logger.ConsoleOutput = printLogs;
         _listener = new HttpListener();
         _listener.Prefixes.Add($"http://{ipAddress}:{port}/");
         Logger.AppendMessage($"SERVER LISTENING AT http://{ipAddress}:{port}/");
@@ -36,42 +35,37 @@ public class Server
 
         _listener.AuthenticationSchemes = AuthenticationSchemes.Digest;
         _listener.*/
-        Logger.AppendMessage("Starting thread...");
         _processThread.Start();
-        Logger.AppendMessage("Thread started");
     }
 
     public void Stop()
     {
         _processCancelTokenSrc.Cancel(); // Graceful shutdown
+        Logger.ToFile(); // Saving logs to file
     }
 
     private async Task ProcessRequests(CancellationToken cancelToken)
     {
-        Logger.AppendMessage("THREAD STARTING LISTENER...");
+        Logger.AppendMessage("STARTING LISTENER...");
         _listener.Start();
-        Logger.AppendMessage("THREAD LISTENER STARTED");
+        Logger.AppendMessage("LISTENER STARTED");
         
         while (!cancelToken.IsCancellationRequested)
         {
             try
             {
-                const string message = "<HTML><BODY><p>Test1, Test2, Test3, end.</p></BODY></HTML>";
-
-                Logger.AppendMessage("THREAD WAITING FOR CONTEXT...");
+                Logger.AppendMessage("WAITING FOR CONTEXT");
                 var context = await _listener.GetContextAsync();
-                
-                Logger.AppendMessage("THREAD CONTEXT RECEIVED");
+                Logger.AppendMessage("CONTEXT RECEIVED");
 
-                var newClient = new ClientInterface(context.Request, message);
-                newClient.SendResponse(context.Response);
-                ClientCollection.AddClient(newClient);
+                var client = new ClientInterface(context);
+                ClientCollection.AddClient(client);
 
-                Logger.AppendMessage("THREAD RESPONSE SENT OUT");
+                Logger.AppendMessage("RESPONSE SENT OUT");
             }
             catch (Exception ex)
             {
-                Logger.AppendMessage($"THREAD HTTP server error: {ex.Message}");
+                Logger.AppendMessage($"Listen thread error: {ex.Message}");
             }
         }
         

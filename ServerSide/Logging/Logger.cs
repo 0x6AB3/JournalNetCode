@@ -2,6 +2,7 @@
 
 public static class Logger
 {
+    public static bool ConsoleOutput = false;
     private static readonly List<Log> Logs = [];
     private static readonly Action<Log> AddLog = log => Logs.Add(log);
     
@@ -20,6 +21,11 @@ public static class Logger
 
     public static void AppendMessage(string message)
     {
-        AddLog(new Log(message));
+        var log = new Log(message);
+        AddLog(log);
+        if (ConsoleOutput)
+        {
+            Console.WriteLine(log.ToString());
+        }
     }
 }

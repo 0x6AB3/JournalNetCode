@@ -13,6 +13,6 @@ public class Log
 
     public override string ToString()
     {
-        return $"{base.ToString()} [{_time}]\t{_message}";
+        return $"LOG: [{_time}]\t{_message}";
     }
 }
