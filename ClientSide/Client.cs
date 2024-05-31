@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Net.Mail;
+using JournalNetCode.Common.Utility;
 
 namespace JournalNetCode.ClientSide;
 
@@ -14,14 +15,13 @@ public class Client
         _port = port;
     }
 
-    public bool SignUp(string email, string password)
+    public bool SignUp(string emailAddress, string password)
     {
-        return false;
-        if (MailAddress.TryCreate(email, out _)) // Valdiate email
+        if (!Validate.EmailAddress(emailAddress))
         {
-            //var hashingAlgorithm = new PBKDF2();
-            //hashingAlgorithm.GetHash(password)
+            throw new ArgumentException("Invalid email address");
         }
+        
     }
 
     private async Task<string?> RetrieveContent()
