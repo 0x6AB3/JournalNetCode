@@ -1,6 +1,6 @@
 ﻿using System.Text;
-using System.Net.Mail;
-using JournalNetCode.Common.Utility;
+using System.Text.Json;
+using JournalNetCode.ServerSide.ClientHandling;
 
 namespace JournalNetCode.ClientSide;
 
@@ -15,13 +15,18 @@ public class Client
         _port = port;
     }
 
-    public bool SignUp(string emailAddress, string password)
+    public async Task<bool> SignUp(string emailAddress, string password)
     {
-        if (!Validate.EmailAddress(emailAddress))
+
+        LoginDetails details = new LoginDetails(emailAddress, password);
+        string json = JsonSerializer.Serialize(details);
+        var response = await SendContent($"SIGNUP {json}");
+        if (response == "SUCCESS")
         {
-            throw new ArgumentException("Invalid email address");
+            return true;
         }
-        
+
+        return false;
     }
 
     private async Task<string?> RetrieveContent()
@@ -40,7 +45,7 @@ public class Client
         }
     }
 
-    public async Task SendContent(string message = "test")
+    public async Task<string?> SendContent(string message = "test")
     {
         using var client = new HttpClient();
         var content = new StringContent(message, Encoding.UTF8, "text/plain");
@@ -51,10 +56,12 @@ public class Client
             response.EnsureSuccessStatusCode();
             var responseContent = await response.Content.ReadAsStringAsync();
             Console.WriteLine($"CLIENT POST [{message}] to {_ip}:{_port} GOT [{responseContent}]");
+            return responseContent;
         }
         catch (HttpRequestException ex)
         {
             Console.WriteLine($"CLIENT REQUEST ERROR: {ex.Message}");
+            return null;
         }
     }
 }

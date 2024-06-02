@@ -5,9 +5,9 @@ namespace JournalNetCode.ServerSide.ClientHandling;
 
 public sealed class LoginDetails
 {
-    private readonly string _email;
-    private readonly byte[] _passwordHash;
-    private readonly byte[] _salt;
+    public string Email { get; set; }
+    public string PasswordHashBase64 { get; set; }
+    public string SaltBase64 { get; set; }
 
     public LoginDetails(string emailAddress, string password)
     {
@@ -16,8 +16,17 @@ public sealed class LoginDetails
             throw new ArgumentException("Invalid email address");
         }
         
-        _email = emailAddress;
-        var hashingAlgorithm = new PBKDF2();
-        _passwordHash = hashingAlgorithm.GetHash(Cast.StringToBytes(password), out _salt);
+        Email = emailAddress;
+        var hashingAlgorithm = new PasswordHashing();
+        var hashAndSalt = hashingAlgorithm.GetBase64Hash(Cast.StringToBytes(password));
+        PasswordHashBase64 = hashAndSalt.Split("/")[0];
+        SaltBase64 = hashAndSalt.Split("/")[1];
+    }
+
+    public override string ToString()
+    {
+        return $"Email: {Email}\n" +
+               $"Password: {PasswordHashBase64}\n" +
+               $"Salt: {SaltBase64}\n";
     }
 }

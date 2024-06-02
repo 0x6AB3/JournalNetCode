@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Text.Json;
 using JournalNetCode.Common.Utility;
 using JournalNetCode.ServerSide.Logging;
 
@@ -21,18 +22,22 @@ public class ClientInterface
 
     private async Task HandleRequest(HttpListenerRequest request)
     {
-        var messageOut = $"Hello {_endPoint.ToString()}, this is the server";
-        Logger.AppendMessage($"Received {request.HttpMethod} request from {_endPoint.ToString()}");
+        Logger.AppendMessage($"Received {request.HttpMethod} request from {_endPoint}");
         switch (request.HttpMethod)
         {
             case "POST":
-                var message = await RetrieveMessage(request);
-                SendMessage(messageOut);
-                Logger.AppendMessage($"Client sent: [{message}]");
-                
+                var requestContent = await RetrieveMessage(request);
+                var subRequest = requestContent.Split(" ")[0];
+                switch (subRequest)
+                {
+                    case "SIGNUP":
+                        var loginDetails = JsonSerializer.Deserialize<LoginDetails>(requestContent.Split(" ")[1]);
+                        Logger.AppendMessage($"{_endPoint} attempts to signup with {loginDetails}");
+                        SendMessage("SUCCESS");
+                        break;
+                }
                 break;
             case "GET":
-                SendMessage(messageOut);
                 break;
         }
     }

@@ -1,5 +1,6 @@
 ﻿using JournalNetCode.ServerSide;
 using JournalNetCode.ClientSide;
+using JournalNetCode.Common.Security;
 
 namespace JournalNetCode;
 
@@ -14,12 +15,19 @@ class Program
         // Listen loop
         while (true)
         {
-            var input = Console.ReadLine();
-            if (input == "exit") { break; }
+            Console.WriteLine("Email address: example@test.com");
+            const string email = "example@test.com";
+            Console.WriteLine("Password: example123");
+            const string password = "example123";
+            if (Console.ReadLine() == "exit")
+            {
+                break;
+            }
             
             var client = new Client("127.0.0.1", 9600);
 
-            client.SendContent(input == null ? "im sending nothing" : input);
+            bool result = await client.SignUp(email, password);
+            Console.WriteLine($"Login success = {result}");
         }
         
         journalServer.Stop();
