@@ -31,8 +31,13 @@ public class ClientInterface
                 switch (subRequest)
                 {
                     case "SIGNUP":
-                        var loginDetails = JsonSerializer.Deserialize<LoginDetails>(requestContent.Split(" ")[1]);
-                        Logger.AppendMessage($"{_endPoint} attempts to signup with {loginDetails}");
+                        string loginJson = requestContent.Substring("SIGNUP ".Length);
+                        if (loginJson == null)
+                        {
+                            SendMessage("ERROR INVALID SIGNUP JSON STRING");
+                        }
+                        LoginDetails loginDetails = JsonSerializer.Deserialize<LoginDetails>(loginJson);
+                        Logger.AppendMessage($"{_endPoint} attempts to signup with email: {loginDetails.Email}");
                         SendMessage("SUCCESS");
                         break;
                 }
