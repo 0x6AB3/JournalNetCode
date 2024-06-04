@@ -26,7 +26,7 @@ class Program
             
             var client = new Client("127.0.0.1", 9600);
 
-            bool result = await client.SignUp(email, password);
+            var result = await client.SignUp(email, password);
             Console.WriteLine($"Login success = {result}");
         }
         

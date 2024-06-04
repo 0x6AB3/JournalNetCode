@@ -1,5 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
+using JournalNetCode.Common.Requests;
+using JournalNetCode.Common.Utility;
 using JournalNetCode.ServerSide.ClientHandling;
 
 namespace JournalNetCode.ClientSide;
@@ -17,17 +19,21 @@ public class Client
 
     public async Task<bool> SignUp(string emailAddress, string password)
     {
-
-        LoginDetails details = new LoginDetails(emailAddress, password);
-        string json = JsonSerializer.Serialize(details);
-        var response = await SendContent($"SIGNUP {json}");
-        if (response == "SUCCESS")
+        var details = new LoginDetails(emailAddress, password);
+        var detailsJson = Cast.ObjectToJson(details);
+        var request = new ClientRequest()
         {
-            return true;
-        }
-
-        return false;
+            Body = detailsJson,
+            RequestType = ClientRequestType.SignUp
+        };
+        var requestJson = Cast.ObjectToJson(request);
+        var responseJson = await SendContent(requestJson);
+        if (responseJson == null) { return false; } // null check
+        var response = JsonSerializer.Deserialize<ServerResponse>(responseJson);
+        // returning true if successful
+        return (response != null && response.ResponseType == ServerResponseType.Success);
     }
+    
 
     private async Task<string?> RetrieveContent()
     {
@@ -45,7 +51,7 @@ public class Client
         }
     }
 
-    public async Task<string?> SendContent(string message = "test")
+    private async Task<string?> SendContent(string message)
     {
         using var client = new HttpClient();
         var content = new StringContent(message, Encoding.UTF8, "text/plain");
