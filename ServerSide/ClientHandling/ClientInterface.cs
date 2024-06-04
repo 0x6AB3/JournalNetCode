@@ -25,16 +25,37 @@ public class ClientInterface
     {
         if (request.HttpMethod == "POST")
         {
-            var requestJson = await RetrieveMessage(request);
-            var subRequest = JsonSerializer.Deserialize<ClientRequest>(requestJson);
-            if (subRequest == null) { SendSubRequestError(); return; } // null check
-            switch (subRequest.RequestType)
+            var clientRequest = await GetClientRequest(request);
+            if (clientRequest == null || clientRequest.Body == null)
+            { SendClientRequestError("Please provide a valid ClientRequest Json"); return; }
+            
+            switch (clientRequest.RequestType)
             {
                 case ClientRequestType.SignUp:
-                    if (subRequest.Body == null) { SendSubRequestError(); return; } // null check
-                    var details = JsonSerializer.Deserialize<LoginDetails>(subRequest.Body);
-                    if (details == null) { SendSubRequestError(); return; } // null check
-                    HandleSignup(details); // TODO add logs
+                    try
+                    {
+                        var loginDetails = JsonSerializer.Deserialize<LoginDetails>(clientRequest.Body);
+                        var serverResponse = RequestHandler.HandleSignup(loginDetails);
+                        if (serverResponse.ResponseType == ServerResponseType.Success)
+                        {
+                            _email = loginDetails.Email; // Null check in RequestHandler.cs
+                            SendServerResponse(serverResponse);
+                            Logger.AppendMessage($"{_endPoint} Successful signup");
+                        }
+                        
+                    }
+                    catch (ArgumentNullException ex)
+                    {
+
+                    }
+                    catch (JsonException ex)
+                    {
+
+                    }
+                    catch (NotSupportedException ex)
+                    {
+                        Logger.AppendMessage($"Critical error: {ex.Message}");
+                    }
                     break;
                 case ClientRequestType.LogIn:
                     break; // TODO
@@ -50,39 +71,24 @@ public class ClientInterface
         }
         else
         {
-            SendSubRequestError("GET is not supported");
+            SendClientRequestError("Unsupported request; POST [sub-request] instead");
         }
     }
 
-    private void HandleLogin()
+    // Gets ClientRequest object from the JSON that is included in POST
+    private async Task<ClientRequest?> GetClientRequest(HttpListenerRequest post)
     {
-        // TODO
-    }
-
-    private void HandleSignup(LoginDetails details)
+        using var reader = new StreamReader(post.InputStream, post.ContentEncoding);
+        var clientRequestJson = await reader.ReadToEndAsync();
+        var clientRequest = JsonSerializer.Deserialize<ClientRequest>(clientRequestJson);
+        return clientRequest;
+    }    
+    
+    // Server -- TX --> Client
+    private void SendServerResponse(ServerResponse serverResponse)
     {
-        // TODO CHECK IN DATABASE BEFORE HERE
-        var response = new ServerResponse()
-        {
-            Body = "SUCCESS",
-            ResponseType = ServerResponseType.Success
-        };
-        var responseJson = Cast.ObjectToJson(response);
-        _email = details.Email;
-        _authenticated = true;
-        SendMessage(responseJson);
-        Logger.AppendMessage($"{_endPoint} logged into {_email}");
-    }
-
-    private async Task<string> RetrieveMessage(HttpListenerRequest postRequest)
-    {
-        using var reader = new StreamReader(postRequest.InputStream, postRequest.ContentEncoding);
-        return await reader.ReadToEndAsync();
-    }
-
-    private void SendMessage(string message)
-    {
-        var messageOut = Cast.StringToBytes(message);
+        var json = serverResponse.Serialise();
+        var messageOut = Cast.StringToBytes(json);
         var response = _context.Response;
         response.ContentType = "application/base64";
         response.StatusDescription = "OK";
@@ -93,14 +99,14 @@ public class ClientInterface
         response.Close();
     }
     
-    private void SendSubRequestError(string addendum = "None")
+    private void SendClientRequestError(string addendum = "None")
     {
-        var subRequestError = new ServerResponse()
+        var serverResponse = new ServerResponse()
         {
-            Body = "Please provide a valid sub-request (example: SIGNUP [LOGIN-DETAILS JSON])"
+            Body = "Error with your request/sub-request (request should look like: POST [ClientRequest Json string])"
                    + $"Additional information: {addendum}",
             ResponseType = ServerResponseType.Error
         };
-        SendMessage(subRequestError.Serialise());
+        SendServerResponse(serverResponse);
     }
 }

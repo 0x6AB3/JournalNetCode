@@ -2,7 +2,7 @@
 
 namespace JournalNetCode.Common.Requests;
 
-public class ServerResponse : CommunicationObject
+public sealed class ServerResponse : CommunicationObject
 {
     public ServerResponseType ResponseType { get; set; }
 }

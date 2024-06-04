@@ -26,10 +26,13 @@ public sealed class LoginDetails
         }
         
         Email = emailAddress;
+        
         var hashingAlgorithm = new PasswordHashing();
-        var hashAndSalt = hashingAlgorithm.GetBase64Hash(Cast.StringToBytes(password));
-        PasswordHashB64 = hashAndSalt.Split("/")[0];
-        SaltB64 = hashAndSalt.Split("/")[1];
+        
+        // Really confused why I can't just 'out SaltB64' but this will do
+        string saltTemp;
+        PasswordHashB64 = hashingAlgorithm.GetBase64Hash(Cast.StringToBytes(password), out saltTemp);
+        SaltB64 = saltTemp;
     }
 
     public string Serialise()

@@ -10,7 +10,7 @@ public class PasswordHashing
 {
     private readonly int _iterations;
     private readonly byte[] _salt;
-    private const int OutputLength = 32; // (bits) output hash length
+    private const int OutputLength = 32; // (bytes) output hash length
     
     private readonly Action<byte[]> _generateSalt = saltBytes => RandomNumberGenerator.Fill(saltBytes);
     
@@ -21,7 +21,7 @@ public class PasswordHashing
     }
     
     // [HASH/SALT] output string
-    public string GetBase64Hash(byte[] password)
+    public string GetBase64Hash(byte[] password, out string saltB64)
     {
         DateTime start = DateTime.Now;
         _generateSalt(_salt);
@@ -38,6 +38,7 @@ public class PasswordHashing
         
         DateTime finish = DateTime.Now;
         Logger.AppendMessage($"Took {(finish-start).TotalSeconds}s to hash password");
-        return $"{Cast.BytesToBase64(hash)}/{Cast.BytesToBase64(_salt)}";
+        saltB64 = Cast.BytesToBase64(_salt);
+        return Cast.BytesToBase64(hash);
     }
 }
