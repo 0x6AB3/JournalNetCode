@@ -1,6 +1,4 @@
-﻿using MySqlConnector;
-
-namespace JournalNetCode.ServerSide.Database;
+﻿namespace JournalNetCode.ServerSide.Database;
 
 public class DatabaseHandler
 {

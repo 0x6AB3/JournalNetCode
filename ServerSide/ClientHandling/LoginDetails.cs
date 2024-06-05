@@ -30,8 +30,7 @@ public sealed class LoginDetails
         var hashingAlgorithm = new PasswordHashing();
         
         // Really confused why I can't just 'out SaltB64' but this will do
-        string saltTemp;
-        PasswordHashB64 = hashingAlgorithm.GetBase64Hash(Cast.StringToBytes(password), out saltTemp);
+        PasswordHashB64 = hashingAlgorithm.GetBase64Hash(Cast.StringToBytes(password), out var saltTemp);
         SaltB64 = saltTemp;
     }
 

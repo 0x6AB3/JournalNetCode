@@ -1,4 +1,5 @@
-﻿using JournalNetCode.Common.Requests;
+﻿using JournalNetCode.Common.Communication;
+using JournalNetCode.Common.Communication.Types;
 using JournalNetCode.Common.Utility;
 using JournalNetCode.ServerSide.Logging;
 
@@ -10,17 +11,8 @@ public static class RequestHandler
     {
         // TODO CHECK IN DATABASE BEFORE HERE
         ServerResponse response;
-        if (loginDetails == null)
-        {
-            return new ServerResponse() { ResponseType = ServerResponseType.Error };
-        }
-        
-        return new ServerResponse() { ResponseType = ServerResponseType.Success };
-    }
-
-    public static bool HandleSignUp()
-    {
-        // TODO implement this
-        return false;
+        return loginDetails == null ? 
+            new ServerResponse() { ResponseType = ServerResponseType.Error } : 
+            new ServerResponse() { ResponseType = ServerResponseType.Success };
     }
 }

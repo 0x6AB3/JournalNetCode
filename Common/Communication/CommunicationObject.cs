@@ -1,6 +1,6 @@
 ﻿using JournalNetCode.Common.Utility;
 
-namespace JournalNetCode.Common.Requests;
+namespace JournalNetCode.Common.Communication;
 
 public class CommunicationObject
 {

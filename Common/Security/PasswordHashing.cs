@@ -23,7 +23,7 @@ public class PasswordHashing
     // [HASH/SALT] output string
     public string GetBase64Hash(byte[] password, out string saltB64)
     {
-        DateTime start = DateTime.Now;
+        var start = DateTime.Now;
         _generateSalt(_salt);
         
         var argon2 = new Argon2id(password)
@@ -34,9 +34,9 @@ public class PasswordHashing
             MemorySize = 512 // 512 MB
         };
         
-        byte[] hash = argon2.GetBytes(OutputLength);
+        var hash = argon2.GetBytes(OutputLength);
         
-        DateTime finish = DateTime.Now;
+        var finish = DateTime.Now;
         Logger.AppendMessage($"Took {(finish-start).TotalSeconds}s to hash password");
         saltB64 = Cast.BytesToBase64(_salt);
         return Cast.BytesToBase64(hash);

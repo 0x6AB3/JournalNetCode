@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json;
-using JournalNetCode.Common.Requests;
+using JournalNetCode.Common.Communication;
+using JournalNetCode.Common.Communication.Types;
 using JournalNetCode.Common.Utility;
 using JournalNetCode.ServerSide.Logging;
 
@@ -27,7 +28,7 @@ public class ClientInterface
         {
             var clientRequest = await GetClientRequest(request);
             if (clientRequest == null || clientRequest.Body == null)
-            { SendClientRequestError("Please provide a valid ClientRequest Json"); return; }
+            { DispatchError("Please provide a valid ClientRequest Json"); return; }
             
             switch (clientRequest.RequestType)
             {
@@ -39,21 +40,22 @@ public class ClientInterface
                         if (serverResponse.ResponseType == ServerResponseType.Success)
                         {
                             _email = loginDetails.Email; // Null check in RequestHandler.cs
-                            SendServerResponse(serverResponse);
+                            DispatchResponse(serverResponse);
                             Logger.AppendMessage($"{_endPoint} Successful signup");
                         }
                         
                     }
                     catch (ArgumentNullException ex)
                     {
-
+                        // TODO
                     }
                     catch (JsonException ex)
                     {
-
+                        // TODO
                     }
                     catch (NotSupportedException ex)
                     {
+                        // TODO add more
                         Logger.AppendMessage($"Critical error: {ex.Message}");
                     }
                     break;
@@ -71,12 +73,12 @@ public class ClientInterface
         }
         else
         {
-            SendClientRequestError("Unsupported request; POST [sub-request] instead");
+            DispatchError("Unsupported request; POST [sub-request] instead");
         }
     }
 
     // Gets ClientRequest object from the JSON that is included in POST
-    private async Task<ClientRequest?> GetClientRequest(HttpListenerRequest post)
+    private static async Task<ClientRequest?> GetClientRequest(HttpListenerRequest post)
     {
         using var reader = new StreamReader(post.InputStream, post.ContentEncoding);
         var clientRequestJson = await reader.ReadToEndAsync();
@@ -85,7 +87,7 @@ public class ClientInterface
     }    
     
     // Server -- TX --> Client
-    private void SendServerResponse(ServerResponse serverResponse)
+    private void DispatchResponse(ServerResponse serverResponse)
     {
         var json = serverResponse.Serialise();
         var messageOut = Cast.StringToBytes(json);
@@ -99,7 +101,7 @@ public class ClientInterface
         response.Close();
     }
     
-    private void SendClientRequestError(string addendum = "None")
+    private void DispatchError(string addendum = "None")
     {
         var serverResponse = new ServerResponse()
         {
@@ -107,6 +109,6 @@ public class ClientInterface
                    + $"Additional information: {addendum}",
             ResponseType = ServerResponseType.Error
         };
-        SendServerResponse(serverResponse);
+        DispatchResponse(serverResponse);
     }
 }

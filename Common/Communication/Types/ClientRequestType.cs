@@ -1,4 +1,4 @@
-﻿namespace JournalNetCode.Common.Requests;
+﻿namespace JournalNetCode.Common.Communication.Types;
 
 public enum ClientRequestType
 {

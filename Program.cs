@@ -10,25 +10,6 @@ class Program
 {
     static async Task Main()
     {
-        float passwordAvgLength = 0;
-        float saltAvgLength = 0;
-        int n = 100;
-        for (int i = 0; i < n; i++)
-        {
-            Console.Write($"{i} ");
-            var random = new Random();
-            var data = random.Next(10000, 1000000000).ToString();
-            var details = new LoginDetails($"{data}@gmail.com", data);
-            passwordAvgLength += details.PasswordHashB64.Length;
-            saltAvgLength += details.SaltB64.Length;
-        }
-
-        passwordAvgLength /= n;
-        saltAvgLength /= n;
-        
-        Console.WriteLine($"\nAverage password length: {passwordAvgLength}\nAverage salt length: {saltAvgLength}");
-        return;
-        
         var journalServer = new Server("127.0.0.1", 9600, true);
         journalServer.Start();
         

@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
-using JournalNetCode.Common.Requests;
+using JournalNetCode.Common.Communication;
+using JournalNetCode.Common.Communication.Types;
 using JournalNetCode.Common.Utility;
 using JournalNetCode.ServerSide.ClientHandling;
 

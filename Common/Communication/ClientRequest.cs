@@ -1,7 +1,6 @@
-﻿using System.Net;
-using JournalNetCode.Common.Utility;
+﻿using JournalNetCode.Common.Communication.Types;
 
-namespace JournalNetCode.Common.Requests;
+namespace JournalNetCode.Common.Communication;
 
 public sealed class ClientRequest : CommunicationObject
 {
