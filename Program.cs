@@ -25,8 +25,15 @@ class Program
             
             var client = new Client("127.0.0.1", 9600);
 
-            var result = await client.SignUp(email, password);
-            Console.WriteLine($"Login success = {result}");
+            var signupSuccess = await client.SignUp(email, password);
+            if (signupSuccess)
+            {
+                Console.WriteLine("Successful signup");
+            }
+            else
+            {
+                Console.WriteLine("Unable to sign up with these credentials");
+            }
         }
         
         journalServer.Stop();

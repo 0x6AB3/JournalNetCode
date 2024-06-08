@@ -23,19 +23,25 @@ public static class Logger
     public static void AppendMessage(string message)
     {
         var log = new Log(message);
-        AddLog(log);
         PrintLog(log);
     }
 
     public static void AppendError(string message, string addendum)
     {
         var error = new ErrorLog(message, addendum);
-        AddLog(error);
         PrintLog(error);
+    }
+
+    public static void AppendWarn(string message)
+    {
+        var warn = new WarnLog(message);
+        PrintLog(warn);
     }
 
     private static void PrintLog(Log log)
     {
+        AddLog(log);
+        
         if (ConsoleOutput)
         {
             Console.WriteLine(log.ToString());

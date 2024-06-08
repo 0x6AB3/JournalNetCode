@@ -26,6 +26,7 @@ public class ClientInterface
     {
         if (request.HttpMethod == "POST")
         {
+            // Null check on ClientRequest data received with POST
             var clientRequest = await GetClientRequest(request);
             if (clientRequest == null || clientRequest.Body == null)
             { DispatchError("Please provide a valid ClientRequest Json"); return; }
@@ -37,11 +38,16 @@ public class ClientInterface
                     {
                         var loginDetails = JsonSerializer.Deserialize<LoginDetails>(clientRequest.Body);
                         var serverResponse = RequestHandler.HandleSignup(loginDetails);
+                        DispatchResponse(serverResponse);
+                        
                         if (serverResponse.ResponseType == ServerResponseType.Success)
                         {
                             _email = loginDetails.Email; // Null check in RequestHandler.cs
-                            DispatchResponse(serverResponse);
                             Logger.AppendMessage($"{_endPoint} Successful signup");
+                        }
+                        else
+                        {
+                            Logger.AppendWarn($"{_endPoint} Attempted signup with existing credentials");
                         }
 
                     }
