@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Text.Json;
 using JournalNetCode.ServerSide.ClientHandling;
 using JournalNetCode.ServerSide.Logging;
 
@@ -46,26 +47,25 @@ public class Server
 
     private async Task ProcessRequests(CancellationToken cancelToken)
     {
-        Logger.AppendMessage("STARTING LISTENER...");
+        Logger.AppendMessage("Starting listener...");
         _listener.Start();
-        Logger.AppendMessage("LISTENER STARTED");
+        Logger.AppendMessage("Listener started!");
         
         while (!cancelToken.IsCancellationRequested)
         {
             try
             {
-                Logger.AppendMessage("WAITING FOR CONTEXT");
+                Logger.AppendMessage("Awaiting context...");
                 var context = await _listener.GetContextAsync();
-                Logger.AppendMessage("CONTEXT RECEIVED");
+                Logger.AppendMessage("Context received!");
 
                 var client = new ClientInterface(context);
                 ClientCollection.AddClient(client);
-
-                Logger.AppendMessage("RESPONSE SENT OUT");
+                Logger.AppendMessage("Response sent out");
             }
             catch (Exception ex)
             {
-                Logger.AppendMessage($"Listen thread error: {ex.Message}");
+                Logger.AppendError("Listen thread error", ex.Message);
             }
         }
         

@@ -2,17 +2,17 @@
 
 public class Log
 {
-    private readonly string _message;
+    protected string Message;
     private readonly DateTime _time;
     
     public Log(string message)
     {
-        _message = message;
+        Message = message;
         _time = DateTime.Now;
     }
 
     public override string ToString()
     {
-        return $"LOG: [{_time}]\t{_message}";
+        return $"[{_time}] LOG:\t{Message}";
     }
 }

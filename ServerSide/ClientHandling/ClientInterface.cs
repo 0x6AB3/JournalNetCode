@@ -43,20 +43,11 @@ public class ClientInterface
                             DispatchResponse(serverResponse);
                             Logger.AppendMessage($"{_endPoint} Successful signup");
                         }
-                        
+
                     }
-                    catch (ArgumentNullException ex)
+                    catch (Exception ex)
                     {
-                        // TODO
-                    }
-                    catch (JsonException ex)
-                    {
-                        // TODO
-                    }
-                    catch (NotSupportedException ex)
-                    {
-                        // TODO add more
-                        Logger.AppendMessage($"Critical error: {ex.Message}");
+                        Logger.AppendError("Error during signup", ex.Message);
                     }
                     break;
                 case ClientRequestType.LogIn:
@@ -87,7 +78,7 @@ public class ClientInterface
     }    
     
     // Server -- TX --> Client
-    private void DispatchResponse(ServerResponse serverResponse)
+    private void DispatchResponse(ServerResponse serverResponse) // TODO revise this
     {
         var json = serverResponse.Serialise();
         var messageOut = Cast.StringToBytes(json);

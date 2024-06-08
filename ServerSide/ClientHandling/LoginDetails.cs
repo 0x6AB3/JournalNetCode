@@ -6,16 +6,19 @@ namespace JournalNetCode.ServerSide.ClientHandling;
 
 public sealed class LoginDetails
 {
-    public string Email { get; private set; } // set for deserialisation
-    public string PasswordHashB64 { get; private set; }
-    public string SaltB64 { get; private set; }
-
+    [JsonInclude]
+    public string Email { get; private set; }
+    [JsonInclude]
+    public string AuthHashB64 { get; private set; }
+    [JsonInclude]
+    public string AuthSaltB64 { get; private set; }
+    
     [JsonConstructor]
-    public LoginDetails(string emailAddress, string passwordHashBase64, string saltBase64)
+    public LoginDetails(string email, string authHashB64, string authSaltB64)
     {
-        Email = emailAddress;
-        PasswordHashB64 = passwordHashBase64;
-        SaltB64 = saltBase64;
+        Email = email;
+        AuthHashB64 = authHashB64;
+        AuthSaltB64 = authSaltB64;
     }
     
     public LoginDetails(string emailAddress, string password)
@@ -30,8 +33,8 @@ public sealed class LoginDetails
         var hashingAlgorithm = new PasswordHashing();
         
         // Really confused why I can't just 'out SaltB64' but this will do
-        PasswordHashB64 = hashingAlgorithm.GetBase64Hash(Cast.StringToBytes(password), out var saltTemp);
-        SaltB64 = saltTemp;
+        AuthHashB64 = hashingAlgorithm.GetBase64Hash(Cast.StringToBytes(password), out var saltTemp);
+        AuthSaltB64 = saltTemp;
     }
 
     public string Serialise()
@@ -42,7 +45,7 @@ public sealed class LoginDetails
     public override string ToString()
     {
         return $"Email: {Email}\n" +
-               $"Password: {PasswordHashB64}\n" +
-               $"Salt: {SaltB64}\n";
+               $"Authentication hash: {AuthHashB64}\n" +
+               $"Salt: {AuthSaltB64}\n";
     }
 }

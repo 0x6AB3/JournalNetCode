@@ -1,7 +1,5 @@
 ﻿using JournalNetCode.ServerSide;
 using JournalNetCode.ClientSide;
-using JournalNetCode.Common.Security;
-using JournalNetCode.ServerSide.ClientHandling;
 
 namespace JournalNetCode;
 

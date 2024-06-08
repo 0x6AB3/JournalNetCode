@@ -24,6 +24,18 @@ public static class Logger
     {
         var log = new Log(message);
         AddLog(log);
+        PrintLog(log);
+    }
+
+    public static void AppendError(string message, string addendum)
+    {
+        var error = new ErrorLog(message, addendum);
+        AddLog(error);
+        PrintLog(error);
+    }
+
+    private static void PrintLog(Log log)
+    {
         if (ConsoleOutput)
         {
             Console.WriteLine(log.ToString());
