@@ -20,6 +20,7 @@ public class Client
 
     public async Task<bool> SignUp(string emailAddress, string password)
     {
+        Console.WriteLine($"Attempting signup with {emailAddress}:{password}");
         var details = new LoginDetails(emailAddress, password);
         var detailsJson = Cast.ObjectToJson(details);
         var request = new ClientRequest()
@@ -32,6 +33,7 @@ public class Client
         if (responseJson == null) { return false; } // null check
         var response = JsonSerializer.Deserialize<ServerResponse>(responseJson);
         // returning true if successful
+        Console.WriteLine($"Server response: {response.Body}");
         return (response != null && response.ResponseType == ServerResponseType.Success);
     }
     
