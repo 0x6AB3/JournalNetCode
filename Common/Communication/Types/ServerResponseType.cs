@@ -3,6 +3,5 @@
 public enum ServerResponseType
 {
     Success,
-    Negative,
-    Error
+    Failure
 }

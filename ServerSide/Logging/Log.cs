@@ -13,6 +13,6 @@ public class Log
 
     public override string ToString()
     {
-        return $"[{_time}] LOG:\t{Message}";
+        return $"[{_time}]:\t{Message}";
     }
 }

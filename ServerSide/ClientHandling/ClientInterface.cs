@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json;
-using JournalNetCode.Common.Communication;
+using JournalNetCode.Common.Communication.Containers;
 using JournalNetCode.Common.Communication.Types;
 using JournalNetCode.Common.Utility;
 using JournalNetCode.ServerSide.Logging;
@@ -47,7 +47,7 @@ public class ClientInterface
                         }
                         else
                         {
-                            Logger.AppendWarn($"{_endPoint} Attempted signup with existing credentials");
+                            Logger.AppendWarn($"{_endPoint} Signup error: {serverResponse.Body}");
                         }
 
                     }
@@ -61,8 +61,6 @@ public class ClientInterface
                 case ClientRequestType.PostNote:
                     break; // TODO
                 case ClientRequestType.GetNote:
-                    break; // TODO
-                case ClientRequestType.Unknown:
                     break; // TODO
                 default:
                     break; // TODO
@@ -104,7 +102,7 @@ public class ClientInterface
         {
             Body = "Error with your request/sub-request (request should look like: POST [ClientRequest Json string])"
                    + $"Additional information: {addendum}",
-            ResponseType = ServerResponseType.Error
+            ResponseType = ServerResponseType.Failure
         };
         DispatchResponse(serverResponse);
     }

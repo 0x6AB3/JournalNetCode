@@ -1,8 +1,8 @@
 ﻿using JournalNetCode.Common.Utility;
 
-namespace JournalNetCode.Common.Communication;
+namespace JournalNetCode.Common.Communication.Containers;
 
-public class CommunicationObject
+public class CommunicationContainer
 {
     public string? Body { get; set; }
 

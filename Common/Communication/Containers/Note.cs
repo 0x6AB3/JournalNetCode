@@ -1,6 +1,6 @@
-﻿namespace JournalNetCode.Common.Communication;
+﻿namespace JournalNetCode.Common.Communication.Containers;
 
-public sealed class NoteContainer
+public sealed class Note
 {
     private bool _passwordProtected;
     private byte[] _encryptedContent;
