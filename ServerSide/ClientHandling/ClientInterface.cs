@@ -13,6 +13,7 @@ public class ClientInterface
     private readonly HttpListenerContext _context;
     private bool _authenticated; // TODO implement this
     private string _email;
+    public string ID { get { return _email == null ? _endPoint.ToString() : _email; } }
 
     public ClientInterface(HttpListenerContext context)
     {
@@ -30,6 +31,7 @@ public class ClientInterface
             var clientRequest = await GetClientRequest(request);
             if (clientRequest == null || clientRequest.Body == null)
             { DispatchError("Please provide a valid ClientRequest Json"); return; }
+            Logger.AppendMessage($"{ID} requests {clientRequest.RequestType.ToString().ToLower()}");
             
             switch (clientRequest.RequestType)
             {
@@ -43,11 +45,11 @@ public class ClientInterface
                         if (serverResponse.ResponseType == ServerResponseType.Success)
                         {
                             _email = loginDetails.Email; // Null check in RequestHandler.cs
-                            Logger.AppendMessage($"{_endPoint} Successful signup");
+                            Logger.AppendMessage($"{ID} Successful signup");
                         }
                         else
                         {
-                            Logger.AppendWarn($"{_endPoint} Signup error: {serverResponse.Body}");
+                            Logger.AppendWarn($"{ID} Signup error: {serverResponse.Body}");
                         }
 
                     }
@@ -115,7 +117,7 @@ public class ClientInterface
         response.OutputStream.Write(messageOut);
         response.OutputStream.Close();
         response.Close();
-        Logger.AppendMessage($"Sent {serverResponse.Body} to {_endPoint}");
+        Logger.AppendMessage($"[{serverResponse.Body}] --> {ID}");
     }
     
     private void DispatchError(string addendum = "None")

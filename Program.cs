@@ -10,8 +10,19 @@ class Program
     {
         var journalServer = new Server("127.0.0.1", 9600, true);
         journalServer.Start();
-        
         var client = new Client("127.0.0.1", 9600);
+        
+
+        for (int i = 0; i < 100; i++)
+        {
+            var demoClient = new Client("127.0.0.1", 9600);
+            var random = new Random();
+            var id = random.Next(100000, 1000000);
+            var email = $"{id}@gmail.com";
+            var password = $"{id}";
+            await demoClient.SignUp(email, password);
+            await demoClient.LogIn(email, password);
+        }
         
         // Listen loop
         var running = true;

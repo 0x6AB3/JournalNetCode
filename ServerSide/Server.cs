@@ -55,13 +55,9 @@ public class Server
         {
             try
             {
-                Logger.AppendMessage("Awaiting context...");
                 var context = await _listener.GetContextAsync();
-                Logger.AppendMessage("Context received!");
-
                 var client = new ClientInterface(context);
                 ClientCollection.AddClient(client);
-                Logger.AppendMessage("Response sent out");
             }
             catch (Exception ex)
             {
