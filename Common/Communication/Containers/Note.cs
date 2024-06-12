@@ -4,6 +4,4 @@ public sealed class Note
 {
     private bool _passwordProtected;
     private byte[] _encryptedContent;
-    private byte[] _encryptionKeySalt;
-
 }

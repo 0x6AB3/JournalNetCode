@@ -11,9 +11,8 @@ public class ClientInterface
 {
     private readonly IPEndPoint _endPoint;
     private readonly HttpListenerContext _context;
-    private bool _authenticated; // TODO implement this
     private string _email;
-    public string ID { get { return _email == null ? _endPoint.ToString() : _email; } }
+    private string Identifier => _email == null ? _endPoint.ToString() : _email;
 
     public ClientInterface(HttpListenerContext context)
     {
@@ -31,68 +30,40 @@ public class ClientInterface
             var clientRequest = await GetClientRequest(request);
             if (clientRequest == null || clientRequest.Body == null)
             { DispatchError("Please provide a valid ClientRequest Json"); return; }
-            Logger.AppendMessage($"{ID} requests {clientRequest.RequestType.ToString().ToLower()}");
+            Logger.AppendMessage($"{Identifier} requests {clientRequest.RequestType.ToString().ToLower()}");
             
             switch (clientRequest.RequestType)
             {
                 case ClientRequestType.SignUp:
-                    try
-                    {
-                        var loginDetails = JsonSerializer.Deserialize<LoginDetails>(clientRequest.Body);
-                        var serverResponse = RequestHandler.HandleSignUp(loginDetails);
-                        DispatchResponse(serverResponse);
-                        
-                        if (serverResponse.ResponseType == ServerResponseType.Success)
-                        {
-                            _email = loginDetails.Email; // Null check in RequestHandler.cs
-                            Logger.AppendMessage($"{ID} Successful signup");
-                        }
-                        else
-                        {
-                            Logger.AppendWarn($"{ID} Signup error: {serverResponse.Body}");
-                        }
-
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.AppendError("Error during signup", ex.Message);
-                    }
-                    break;
                 case ClientRequestType.LogIn:
                     try
                     {
                         var loginDetails = JsonSerializer.Deserialize<LoginDetails>(clientRequest.Body);
-                        var serverResponse = RequestHandler.HandleLogIn(loginDetails);
+                        var serverResponse = clientRequest.RequestType == ClientRequestType.SignUp ? 
+                            RequestHandler.HandleSignUp(loginDetails) : 
+                            RequestHandler.HandleLogIn(loginDetails);
+                        
                         DispatchResponse(serverResponse);
                         
                         if (serverResponse.ResponseType == ServerResponseType.Success)
                         {
                             _email = loginDetails.Email; // Null check in RequestHandler.cs
-                            Logger.AppendMessage($"{_endPoint} Successful login");
+                            Logger.AppendMessage($"{Identifier} Successful {clientRequest.RequestType}");
                         }
-                        else
-                        {
-                            Logger.AppendWarn($"{_endPoint} login error: {serverResponse.Body}");
-                        }
-
+                        else { Logger.AppendWarn($"{Identifier} {clientRequest.RequestType} error: {serverResponse.Body}"); }
                     }
-                    catch (Exception ex)
-                    {
-                        Logger.AppendError("Error during login", ex.Message);
-                    }
+                    catch (Exception ex) { Logger.AppendError($"Error during {clientRequest.RequestType}", ex.Message); }
                     break;
                 case ClientRequestType.PostNote:
                     break; // TODO
                 case ClientRequestType.GetNote:
                     break; // TODO
-                default:
-                    break; // TODO
+                default: 
+                    DispatchError("Unsupported request; POST [valid sub-request] instead");
+                    break;
             }
         }
-        else
-        {
-            DispatchError("Unsupported request; POST [sub-request] instead");
-        }
+        else DispatchError("Unsupported request; POST [sub-request] instead");
     }
 
     // Gets ClientRequest object from the JSON that is included in POST
@@ -117,7 +88,7 @@ public class ClientInterface
         response.OutputStream.Write(messageOut);
         response.OutputStream.Close();
         response.Close();
-        Logger.AppendMessage($"[{serverResponse.Body}] --> {ID}");
+        Logger.AppendMessage($"[{serverResponse.Body}] --> {Identifier}");
     }
     
     private void DispatchError(string addendum = "None")
