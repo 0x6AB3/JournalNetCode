@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Text.Json;
 using JournalNetCode.ServerSide.ClientHandling;
 using JournalNetCode.ServerSide.Logging;
 
