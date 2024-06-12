@@ -1,5 +1,6 @@
 ﻿using System.Collections.Specialized;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using JournalNetCode.Common.Security;
 using JournalNetCode.Common.Utility;
 using Microsoft.Data.Sqlite;
@@ -59,28 +60,54 @@ public static class DatabaseHandler // Parameterised sql
     {
         GetPath();
     }
-    public static void LogIn()
+    public static bool LogIn(string email, string receivedAuthHashB64) // Auth hash sent by client (before hashing for storage)
     {
-        GetPath();
+        const string action = "SELECT AuthHashB64, AuthSaltB64 FROM tblAccounts " +
+                              "WHERE Email = @email";
+        
+        var connection = GetConnection();
+        using var command = new SqliteCommand(action, connection);
+        command.Parameters.AddWithValue("@email", email);
+
+        var success = false;
+        using var reader = command.ExecuteReader();
+        if (reader.Read())
+        {
+            var storedAuthHashB64 = reader.GetString(0);
+            var storedAuthSalt = reader.GetString(1);
+            var hashingAlgorithm = new PasswordHashing();
+            var receivedAuthHashBytes = Cast.Base64ToBytes(receivedAuthHashB64);
+            var storedAuthSaltBytes = Cast.Base64ToBytes(storedAuthSalt);
+            var generatedAuthHashBytes = hashingAlgorithm.PrepareAuthForStorage(receivedAuthHashBytes, storedAuthSaltBytes);
+            var generatedAuthHash = Cast.BytesToBase64(generatedAuthHashBytes);
+            success = generatedAuthHash == storedAuthHashB64;
+        }
+        else
+        {
+            throw new Exception();
+        }
+        
+        DisposeConnection(connection);
+        return success;
     }
-    public static bool SignUp(string email, string authHashB64)
+    public static bool SignUp(string email, string receivedAuthHashB64) // Auth hash to be stored (sent by client)
     {
         const string action = "INSERT INTO tblAccounts (Email, AuthHashB64, AuthSaltB64) " +
                               "VALUES (@email, @authHashB64, @authSaltB64)";
 
         // Preparing data for storage
-        var authHashBytes = Cast.Base64ToBytes(authHashB64);
-        var saltBytes = new byte[16]; // 16 byte salt
-        RandomNumberGenerator.Fill(saltBytes);
+        var receivedAuthHashBytes = Cast.Base64ToBytes(receivedAuthHashB64);
+        var generatedSaltBytes = new byte[16]; // 16 byte salt
+        RandomNumberGenerator.Fill(generatedSaltBytes);
         
         // Hashing the authentication hash with a random salt to prevent rainbow table attacks
         // Random salts are not used before this step (email is used as a unique salt for encryption key and auth hash)
         var hashingAlgorithm = new PasswordHashing();
-        var storedAuthHashB64 = hashingAlgorithm.PrepareAuthForStorage(authHashBytes, saltBytes);
-        var storedSaltB64 = Cast.BytesToBase64(saltBytes);
+        var authHashToStoreBytes = hashingAlgorithm.PrepareAuthForStorage(receivedAuthHashBytes, generatedSaltBytes);
+        var storedAuthHashB64 = Cast.BytesToBase64(authHashToStoreBytes);
+        var storedSaltB64 = Cast.BytesToBase64(generatedSaltBytes);
 
         var connection = GetConnection();
-        
         using var command = new SqliteCommand(action, connection);
         command.Parameters.AddWithValue("@email", email);
         command.Parameters.AddWithValue("@authHashB64", storedAuthHashB64);
@@ -105,7 +132,6 @@ public static class DatabaseHandler // Parameterised sql
                               "WHERE Email = @email";
         
         var connection = GetConnection();
-        
         using var command = new SqliteCommand(action, connection);
         command.Parameters.AddWithValue("@email", email);
         

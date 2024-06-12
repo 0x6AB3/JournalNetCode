@@ -17,10 +17,29 @@ public class Client
         _port = port;
     }
 
+    public async Task<bool> LogIn(string emailAddress, string password)
+    {
+        Console.WriteLine($"Attempting login with {emailAddress}:{password}");
+        var details = new LoginDetails(emailAddress, password, out var encryptionKey);
+        var detailsJson = Cast.ObjectToJson(details);
+        var request = new ClientRequest()
+        {
+            Body = detailsJson,
+            RequestType = ClientRequestType.LogIn
+        };
+        var requestJson = Cast.ObjectToJson(request);
+        var responseJson = await SendContent(requestJson);
+        if (responseJson == null) { return false; } // null check
+        var response = JsonSerializer.Deserialize<ServerResponse>(responseJson);
+        // returning true if successful
+        Console.WriteLine($"Server response: {response.Body}");
+        return (response != null && response.ResponseType == ServerResponseType.Success);
+    }
+    
     public async Task<bool> SignUp(string emailAddress, string password)
     {
         Console.WriteLine($"Attempting signup with {emailAddress}:{password}");
-        var details = new LoginDetails(emailAddress, password);
+        var details = new LoginDetails(emailAddress, password, out var encryptionKey);
         var detailsJson = Cast.ObjectToJson(details);
         var request = new ClientRequest()
         {

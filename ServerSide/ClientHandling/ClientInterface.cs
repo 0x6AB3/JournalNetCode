@@ -37,7 +37,7 @@ public class ClientInterface
                     try
                     {
                         var loginDetails = JsonSerializer.Deserialize<LoginDetails>(clientRequest.Body);
-                        var serverResponse = RequestHandler.HandleSignup(loginDetails);
+                        var serverResponse = RequestHandler.HandleSignUp(loginDetails);
                         DispatchResponse(serverResponse);
                         
                         if (serverResponse.ResponseType == ServerResponseType.Success)
@@ -57,7 +57,28 @@ public class ClientInterface
                     }
                     break;
                 case ClientRequestType.LogIn:
-                    break; // TODO
+                    try
+                    {
+                        var loginDetails = JsonSerializer.Deserialize<LoginDetails>(clientRequest.Body);
+                        var serverResponse = RequestHandler.HandleLogIn(loginDetails);
+                        DispatchResponse(serverResponse);
+                        
+                        if (serverResponse.ResponseType == ServerResponseType.Success)
+                        {
+                            _email = loginDetails.Email; // Null check in RequestHandler.cs
+                            Logger.AppendMessage($"{_endPoint} Successful login");
+                        }
+                        else
+                        {
+                            Logger.AppendWarn($"{_endPoint} login error: {serverResponse.Body}");
+                        }
+
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.AppendError("Error during login", ex.Message);
+                    }
+                    break;
                 case ClientRequestType.PostNote:
                     break; // TODO
                 case ClientRequestType.GetNote:
@@ -94,6 +115,7 @@ public class ClientInterface
         response.OutputStream.Write(messageOut);
         response.OutputStream.Close();
         response.Close();
+        Logger.AppendMessage($"Sent {serverResponse.Body} to {_endPoint}");
     }
     
     private void DispatchError(string addendum = "None")

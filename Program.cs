@@ -30,14 +30,14 @@ class Program
             {
                 break;
             }
-
+            string email, password;
             switch (command)
             {
                 case "exit":
                     running = false;
                     break;
                 case "signup":
-                    string email, password;
+                    
                     try
                     {
                         email = option[1];
@@ -53,6 +53,19 @@ class Program
                     Console.WriteLine($"Sign up success: {signupSuccess}");
                     break;
                 case "login":
+                    try
+                    {
+                        email = option[1];
+                        password = option[2];
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Invalid parameters: {ex.Message}");
+                        break;
+                    }
+                    
+                    var loginSuccess = await client.LogIn(email, password);
+                    Console.WriteLine($"Log in success: {loginSuccess}");
                     break;
             }
             
