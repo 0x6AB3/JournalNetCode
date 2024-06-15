@@ -31,7 +31,7 @@ public static class DatabaseHandler // Parameterised sql
         catch (Exception ex)
         {
             Logger.AppendError("Error: Cannot locate SQLite database file",
-                "Ensure JournalDB.db is located in JournalNetCode/");
+                $"Ensure JournalDB.db is located in JournalNetCode/\n{ex.Message}");
             throw new Exception("Unable to locate SQLite database");
         }
     }
@@ -75,11 +75,13 @@ public static class DatabaseHandler // Parameterised sql
         {
             var storedAuthHashB64 = reader.GetString(0);
             var storedAuthSalt = reader.GetString(1);
-            var hashingAlgorithm = new PasswordHashing();
             var receivedAuthHashBytes = Cast.Base64ToBytes(receivedAuthHashB64);
             var storedAuthSaltBytes = Cast.Base64ToBytes(storedAuthSalt);
+            
+            var hashingAlgorithm = new PasswordHashing();
             var generatedAuthHashBytes = hashingAlgorithm.PrepareAuthForStorage(receivedAuthHashBytes, storedAuthSaltBytes);
             var generatedAuthHash = Cast.BytesToBase64(generatedAuthHashBytes);
+            
             success = generatedAuthHash == storedAuthHashB64;
         }
         else

@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.Design.Serialization;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using JournalNetCode.Common.Security;
 using JournalNetCode.Common.Utility;
 
@@ -29,10 +28,9 @@ public sealed class LoginDetails
         Email = emailAddress;
         
         var hashingAlgorithm = new PasswordHashing();
-        var passwordBytes = Cast.StringToBytes(password);
-        var emailBytes = Cast.StringToBytes(emailAddress);
-        var authHashBytes = hashingAlgorithm.GetAuthHash(passwordBytes, emailBytes, out encryptionKey);
+        var (authHashBytes, encryptionKeyBytes) = hashingAlgorithm.GetAuthHash(password, emailAddress);
         AuthHashB64 = Cast.BytesToBase64(authHashBytes);
+        encryptionKey = encryptionKeyBytes;
     }
 
     public string Serialise()

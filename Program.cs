@@ -1,5 +1,10 @@
-﻿using JournalNetCode.ServerSide;
+﻿using System.Collections.Concurrent;
+using System.Text.Json;
+using JournalNetCode.ServerSide;
 using JournalNetCode.ClientSide;
+using JournalNetCode.Common.Communication.Containers;
+using JournalNetCode.Common.Security;
+using JournalNetCode.Common.Utility;
 
 namespace JournalNetCode;
 
@@ -8,12 +13,47 @@ class Program
 {
     static async Task Main()
     {
+        /*
         var journalServer = new Server("127.0.0.1", 9600, true);
         journalServer.Start();
         var client = new Client("127.0.0.1", 9600);
+*/
+        Console.Write("Email address: ");
+        var email = Console.ReadLine();
         
+        Console.Write("Password: ");
+        var password = Console.ReadLine();
+        
+        Console.WriteLine("Generating encryption key...");
+        var hashingAlgorithm = new PasswordHashing();
+        var encryptionKey = hashingAlgorithm.GetEncryptionKey("password", "name@email.com");
+        Console.WriteLine($"Generated encryption key: {Cast.BytesToBase64(encryptionKey)}");
+        
+        Console.Write("Note title: ");
+        var note = new Note(Console.ReadLine());
+        Console.WriteLine($"Note creation at = {note.TimeOfCreation}");
+        Console.Write("Note content: ");
+        note.SetText(Console.ReadLine(), encryptionKey);
+        
+        Console.WriteLine($"Writing to Notes/{note.Title}.json");
+        var path = note.ToFile();
+        
+        Console.WriteLine($"Reading from {path} ...");
+        var content = File.ReadAllText(path);
+        
+        Console.WriteLine($"Deserialising: {content} ...");
+        var recoveredNote = JsonSerializer.Deserialize<Note>(content);
+        
+        Console.WriteLine($"Deserialised note:");
+        Console.WriteLine($"Title = {recoveredNote.Title}");
+        Console.WriteLine($"Content = {Cast.BytesToBase64(recoveredNote.InternalData)}");
+        Console.WriteLine($"IV = {Cast.BytesToBase64(recoveredNote.InitVector)}");
+        Console.WriteLine($"Tag = {Cast.BytesToBase64(recoveredNote.SecurityTag)}");
+        Console.WriteLine($"Creation date = {recoveredNote.TimeOfCreation}");
+        Console.WriteLine($"Decrypted text: {recoveredNote.GetText(encryptionKey)}");
 
-        for (int i = 0; i < 100; i++)
+        /*
+        for (var i = 0; i < 100; i++)
         {
             var demoClient = new Client("127.0.0.1", 9600);
             var random = new Random();
@@ -23,66 +63,6 @@ class Program
             await demoClient.SignUp(email, password);
             await demoClient.LogIn(email, password);
         }
-        
-        // Listen loop
-        var running = true;
-        while (running)
-        {
-            /*
-            Console.WriteLine("Email address: example@test.com");
-            const string email = "example@test.com";
-            Console.WriteLine("Password: example123");
-            const string password = "example123";
-            */
-            var option = Console.ReadLine().Split(" ");
-            var command = option[0];
-            
-            if (command == "exit")
-            {
-                break;
-            }
-            string email, password;
-            switch (command)
-            {
-                case "exit":
-                    running = false;
-                    break;
-                case "signup":
-                    
-                    try
-                    {
-                        email = option[1];
-                        password = option[2];
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Invalid parameters: {ex.Message}");
-                        break;
-                    }
-                    
-                    var signupSuccess = await client.SignUp(email, password);
-                    Console.WriteLine($"Sign up success: {signupSuccess}");
-                    break;
-                case "login":
-                    try
-                    {
-                        email = option[1];
-                        password = option[2];
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Invalid parameters: {ex.Message}");
-                        break;
-                    }
-                    
-                    var loginSuccess = await client.LogIn(email, password);
-                    Console.WriteLine($"Log in success: {loginSuccess}");
-                    break;
-            }
-            
-            
-        }
-        
-        journalServer.Stop();
+        journalServer.Stop();*/
     }
 }

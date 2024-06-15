@@ -9,7 +9,7 @@ namespace JournalNetCode.Common.Security;
 public class PasswordHashing
 {
     private readonly int _iterations;
-    private const int OutputLength = 32; // (bytes) output hash length
+    private const int OutputLength = 32; // (bytes) 256-bit key/hash
     
     public PasswordHashing(int iterations = 10^5)
     {
@@ -22,16 +22,19 @@ public class PasswordHashing
         return saltedAuthHash;
     }
 
-    public byte[] GetAuthHash(byte[] password, byte[] email, out byte[] encryptionKey)
+    public (byte[] authenticationHash, byte[] encryptionKey) GetAuthHash(string password, string email)
     {
-        encryptionKey = GetEncryptionKeyB64(password, email);
-        var authenticationHash = DeriveHash(encryptionKey, password);
-        return authenticationHash;
+        var passwordBytes = Cast.StringToBytes(password);
+        var encryptionKey = GetEncryptionKey(password, email);
+        var authenticationHash = DeriveHash(encryptionKey, passwordBytes);
+        return (authenticationHash, encryptionKey);
     }
     
-    private byte[] GetEncryptionKeyB64(byte[] password, byte[] email)
+    public byte[] GetEncryptionKey(string password, string email)
     {
-        var encryptionKey = DeriveHash(password, email);
+        var passwordBytes = Cast.StringToBytes(password);
+        var emailBytes = Cast.StringToBytes(email);
+        var encryptionKey = DeriveHash(passwordBytes, emailBytes);
         return encryptionKey;
     }
 
