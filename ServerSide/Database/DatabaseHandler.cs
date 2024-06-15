@@ -75,11 +75,9 @@ public static class DatabaseHandler // Parameterised sql
         {
             var storedAuthHashB64 = reader.GetString(0);
             var storedAuthSalt = reader.GetString(1);
-            var receivedAuthHashBytes = Cast.Base64ToBytes(receivedAuthHashB64);
-            var storedAuthSaltBytes = Cast.Base64ToBytes(storedAuthSalt);
             
             var hashingAlgorithm = new PasswordHashing();
-            var generatedAuthHashBytes = hashingAlgorithm.PrepareAuthForStorage(receivedAuthHashBytes, storedAuthSaltBytes);
+            var generatedAuthHashBytes = hashingAlgorithm.PrepareAuthForStorage(storedAuthHashB64, storedAuthSalt);
             var generatedAuthHash = Cast.BytesToBase64(generatedAuthHashBytes);
             
             success = generatedAuthHash == storedAuthHashB64;
@@ -98,14 +96,14 @@ public static class DatabaseHandler // Parameterised sql
                               "VALUES (@email, @authHashB64, @authSaltB64)";
 
         // Preparing data for storage
-        var receivedAuthHashBytes = Cast.Base64ToBytes(receivedAuthHashB64);
         var generatedSaltBytes = new byte[16]; // 16 byte salt
         RandomNumberGenerator.Fill(generatedSaltBytes);
+        var generatedSalt = Cast.BytesToBase64(generatedSaltBytes);
         
         // Hashing the authentication hash with a random salt to prevent rainbow table attacks
         // Random salts are not used before this step (email is used as a unique salt for encryption key and auth hash)
         var hashingAlgorithm = new PasswordHashing();
-        var authHashToStoreBytes = hashingAlgorithm.PrepareAuthForStorage(receivedAuthHashBytes, generatedSaltBytes);
+        var authHashToStoreBytes = hashingAlgorithm.PrepareAuthForStorage(receivedAuthHashB64, generatedSalt);
         var storedAuthHashB64 = Cast.BytesToBase64(authHashToStoreBytes);
         var storedSaltB64 = Cast.BytesToBase64(generatedSaltBytes);
 
