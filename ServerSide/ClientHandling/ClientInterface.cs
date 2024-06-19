@@ -9,21 +9,30 @@ namespace JournalNetCode.ServerSide.ClientHandling;
 
 public class ClientInterface
 {
-    private readonly IPEndPoint _endPoint;
-    private readonly HttpListenerContext _context;
+    public readonly IPEndPoint remoteEndPoint;
+    private HttpListenerContext? _context;
     private string? _email;
-    private string Identifier => _email ?? _endPoint?.ToString() ?? "Unable to retrieve client identifier";
 
-    public ClientInterface(HttpListenerContext context)
+    private string Identifier()
     {
-        _context = context;
-        var request = context.Request;
-        _endPoint = request.RemoteEndPoint;
-        HandleRequest(request); // TODO sort this out
+        var identifier = _email ?? "";
+        if (identifier.Length != 0)
+        {
+            identifier += "/";
+        }
+        identifier += remoteEndPoint;
+        return identifier;
+    }
+    
+    public ClientInterface(IPEndPoint endPoint)
+    {
+        remoteEndPoint = endPoint;
     }
 
-    private async Task HandleRequest(HttpListenerRequest request)
+    public async Task Process(HttpListenerContext context)
     {
+        _context = context;
+        var request = _context.Request;
         if (request.HttpMethod != "POST")
         {
             DispatchError("Unsupported request; POST [ClientRequest JSON] instead");
@@ -34,8 +43,8 @@ public class ClientInterface
         var clientRequest = await GetClientRequest(request);
         if (clientRequest == null || clientRequest.Body == null)
         { DispatchError("Please provide a valid [ClientRequest JSON] with your POST request"); return; }
-        Logger.AppendMessage($"{Identifier} requests {clientRequest.RequestType.ToString().ToLower()}");
-        
+        Logger.AppendMessage($"{Identifier()} requests {clientRequest.RequestType.ToString().ToLower()}");
+        ServerResponse response;
         switch (clientRequest.RequestType)
         {
             case ClientRequestType.SignUp:
@@ -45,22 +54,26 @@ public class ClientInterface
                     Logger.AppendError($"Error during {clientRequest.RequestType}", "Unable to deserialise LoginDetails JSON string");
                     DispatchError("Unable to deserialise the body of ClientRequest (LoginDetails JSON)");
                 }
-                var serverResponse = clientRequest.RequestType == ClientRequestType.SignUp
+                response = clientRequest.RequestType == ClientRequestType.SignUp
                     ? RequestHandler.HandleSignUp(loginDetails)
                     : RequestHandler.HandleLogIn(loginDetails);
-                DispatchResponse(serverResponse);
+                DispatchResponse(response);
                     
                 // Logger output
-                if (serverResponse.ResponseType == ServerResponseType.Success) 
+                if (response.ResponseType == ServerResponseType.Success) 
                 {
                     _email = loginDetails.Email; // Null check in RequestHandler.cs
-                    Logger.AppendMessage($"{Identifier} Successful {clientRequest.RequestType}");
+                    Logger.AppendMessage($"{Identifier()} Successful {clientRequest.RequestType}");
                 }
-                else { Logger.AppendWarn($"{Identifier} {clientRequest.RequestType} error: {serverResponse.Body}"); } 
+                else { Logger.AppendWarn($"{Identifier()} {clientRequest.RequestType} error: {response.Body}"); } 
                 break;
             case ClientRequestType.PostNote:
             case ClientRequestType.GetNote:
                 break; // TODO
+            case ClientRequestType.GetLoggedIn:
+                response = RequestHandler.GetLoggedIn(_email, remoteEndPoint.ToString());
+                DispatchResponse(response);
+                break;
             default: 
                 DispatchError("Unsupported request; POST [valid sub-request] instead");
                 break;
@@ -77,7 +90,7 @@ public class ClientInterface
     }    
     
     // Server -- TX --> Client
-    private bool  DispatchResponse(ServerResponse serverResponse) // TODO revise this
+    private bool DispatchResponse(ServerResponse serverResponse) // TODO revise this
     {
         try
         {
@@ -91,12 +104,12 @@ public class ClientInterface
             response.OutputStream.Write(messageOut);
             response.OutputStream.Close();
             response.Close();
-            Logger.AppendMessage($"[{serverResponse.Body}] --> {Identifier}");
+            Logger.AppendMessage($"{serverResponse.Body} --> {Identifier()}");
             return true;
         }
         catch (Exception ex)
         {
-            Logger.AppendError($"Error while sending ServerResponse JSON to {Identifier}", ex.Message);
+            Logger.AppendError($"Error while sending ServerResponse JSON to {Identifier()}", ex.Message);
             return false;
         }
     }

@@ -1,5 +1,6 @@
 ﻿using JournalNetCode.Common.Communication.Containers;
 using JournalNetCode.Common.Communication.Types;
+using JournalNetCode.Common.Utility;
 using JournalNetCode.ServerSide.Database;
 
 namespace JournalNetCode.ServerSide.ClientHandling;
@@ -29,5 +30,13 @@ public static class RequestHandler
             return new ServerResponse() { Body = $"Account created for {loginDetails.Email}", ResponseType = ServerResponseType.Success };
         
         return new ServerResponse() { Body = $"Account for {loginDetails.Email} already exists", ResponseType = ServerResponseType.Failure };
+    }
+
+    public static ServerResponse GetLoggedIn(string? email, string endPoint)
+    {
+        if (Validate.EmailAddress(email))
+            return new ServerResponse() { Body = $"You are logged in to {email}", ResponseType = ServerResponseType.Success };
+        
+        return new ServerResponse() { Body = $"You are not logged in to an account {endPoint}", ResponseType = ServerResponseType.Failure };
     }
 }

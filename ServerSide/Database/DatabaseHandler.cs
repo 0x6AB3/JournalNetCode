@@ -25,8 +25,8 @@ public static class DatabaseHandler // Parameterised sql
 
         try
         {
-            var end = dir.IndexOf(targetDir) + targetDir.Length; // Parent directory (e.g: /test/example/parent)
-            DBPath = "Data Source=" + Path.Combine(dir[0..end], dbFileName); // Merging parent directory and db file
+            var end = dir.IndexOf(targetDir) + targetDir.Length; // Project parent directory (e.g: /test/example/parent)
+            DBPath = "Data Source=" + Path.Combine(dir[0..end], dbFileName); // Merging parent directory and db file (e.g: /test/example/parent/database.db)
         }
         catch (Exception ex)
         {
@@ -73,14 +73,17 @@ public static class DatabaseHandler // Parameterised sql
         using var reader = command.ExecuteReader();
         if (reader.Read())
         {
-            var storedAuthHashB64 = reader.GetString(0);
-            var storedAuthSalt = reader.GetString(1);
+            // Once the server receives an authentication hash from a client, a random salt is applied to and stored alongside the new hash
+            // This is done to prevent precomputed hash attacks because a random salt is not used before this step
+            var authHashB64 = reader.GetString(0);
+            var storedAuthHash = Cast.Base64ToBytes(authHashB64);
+            var authSaltB64 = reader.GetString(1);
+            var storedAuthSalt = Cast.Base64ToBytes(authSaltB64);
+
+            var authHashToCompare = Cast.Base64ToBytes(receivedAuthHashB64);
             
             var hashingAlgorithm = new PasswordHashing();
-            var generatedAuthHashBytes = hashingAlgorithm.PrepareAuthForStorage(storedAuthHashB64, storedAuthSalt);
-            var generatedAuthHash = Cast.BytesToBase64(generatedAuthHashBytes);
-            
-            success = generatedAuthHash == storedAuthHashB64;
+            success = hashingAlgorithm.CompareAuthHash(storedAuthHash, authHashToCompare, storedAuthSalt);
         }
         else
         {
@@ -95,23 +98,21 @@ public static class DatabaseHandler // Parameterised sql
         const string action = "INSERT INTO tblAccounts (Email, AuthHashB64, AuthSaltB64) " +
                               "VALUES (@email, @authHashB64, @authSaltB64)";
 
-        // Preparing data for storage
-        var generatedSaltBytes = new byte[16]; // 16 byte salt
-        RandomNumberGenerator.Fill(generatedSaltBytes);
-        var generatedSalt = Cast.BytesToBase64(generatedSaltBytes);
+        var receivedAuthHash = Cast.Base64ToBytes(receivedAuthHashB64);
+        var salt = PasswordHashing.GenerateSalt(16);
+        var saltB64 = Cast.BytesToBase64(salt);
         
         // Hashing the authentication hash with a random salt to prevent rainbow table attacks
         // Random salts are not used before this step (email is used as a unique salt for encryption key and auth hash)
         var hashingAlgorithm = new PasswordHashing();
-        var authHashToStoreBytes = hashingAlgorithm.PrepareAuthForStorage(receivedAuthHashB64, generatedSalt);
-        var storedAuthHashB64 = Cast.BytesToBase64(authHashToStoreBytes);
-        var storedSaltB64 = Cast.BytesToBase64(generatedSaltBytes);
+        var authHashPrepared = hashingAlgorithm.DeriveHash(receivedAuthHash, salt);
+        var authHashPreparedB64 = Cast.BytesToBase64(authHashPrepared);
 
         var connection = GetConnection();
         using var command = new SqliteCommand(action, connection);
         command.Parameters.AddWithValue("@email", email);
-        command.Parameters.AddWithValue("@authHashB64", storedAuthHashB64);
-        command.Parameters.AddWithValue("@authSaltB64", storedSaltB64);
+        command.Parameters.AddWithValue("@authHashB64", authHashPreparedB64);
+        command.Parameters.AddWithValue("@authSaltB64", saltB64);
         
         var success = false;
         try

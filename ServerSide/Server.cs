@@ -54,9 +54,15 @@ public class Server
         {
             try
             {
+                // todo check the existing interface for the client endpoint and pass the context
                 var context = await _listener.GetContextAsync();
-                var client = new ClientInterface(context);
-                ClientCollection.AddClient(client);
+                var client = ClientCollection.GetClient(context.Request.RemoteEndPoint);
+                if (client == null)
+                {
+                    client = new ClientInterface(context.Request.RemoteEndPoint);
+                    ClientCollection.AddClient(client);
+                }
+                await client.Process(context);
             }
             catch (Exception ex)
             {

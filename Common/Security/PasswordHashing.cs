@@ -11,19 +11,15 @@ public class PasswordHashing
     private readonly int _iterations;
     private const int OutputLength = 32; // (bytes) 256-bit key/hash
     
-    public PasswordHashing(int iterations = 10^5)
+    public PasswordHashing(int iterations = 50)
     {
         _iterations = iterations;
     }
-
-    // Once server receives an authentication hash from user, a random salt is applied by the server and it is stored
-    // This is done because a random salt is not used before this step and so the hashes may be precomputed by an attacker
-    public byte[] PrepareAuthForStorage(string authHashToStoreB64, string saltToStoreB64)
+    
+    public bool CompareAuthHash(byte[] stored, byte[] received, byte[] salt)
     {
-        var authHash = Cast.Base64ToBytes(authHashToStoreB64);
-        var salt = Cast.Base64ToBytes(saltToStoreB64);
-        var saltedAuthHash = DeriveHash(authHash, salt);
-        return saltedAuthHash;
+        var prepared = DeriveHash(received, salt);
+        return stored.SequenceEqual(prepared);
     }
 
     // The authentication hash is sent to the server by the client
@@ -44,7 +40,7 @@ public class PasswordHashing
         return encryptionKey;
     }
 
-    private byte[] DeriveHash(byte[] plaintextBytes, byte[] saltBytes)
+    public byte[] DeriveHash(byte[] plaintextBytes, byte[] saltBytes)
     {
         var argon2 = new Argon2id(plaintextBytes)
         {
@@ -56,5 +52,12 @@ public class PasswordHashing
         
         var hash = argon2.GetBytes(OutputLength);
         return hash;
+    }
+    
+    public static byte[] GenerateSalt(int length)
+    {
+        var salt = new byte[length];
+        RandomNumberGenerator.Fill(salt);
+        return salt;
     }
 }

@@ -48,8 +48,8 @@ public sealed class Note // AES GCM with 256-bit key used for encryption/decrypt
     public string GetText(byte[] encryptionKey)
     {
         var plaintextBytes = new byte[InternalData.Length];
-        using var decryptor = new AesGcm(encryptionKey, SecurityTag.Length);
-        decryptor.Decrypt(InitVector, InternalData, SecurityTag, plaintextBytes);
+        using var encryptor = new AesGcm(encryptionKey, SecurityTag.Length);
+        encryptor.Decrypt(InitVector, InternalData, SecurityTag, plaintextBytes);
         var plaintext = Cast.BytesToString(plaintextBytes);
         return plaintext;
     }

@@ -5,5 +5,7 @@ public enum ClientRequestType
     SignUp,
     LogIn,
     PostNote,
-    GetNote
+    GetNote,
+    GetLoggedIn,
+    GetNoteList
 }
