@@ -8,7 +8,8 @@ public static class Logger
     
     public static void ToFile(string? directory = null)
     {
-        directory ??= Directory.GetCurrentDirectory() + "/";
+        directory ??= Directory.GetCurrentDirectory() + "/Logs/";
+        Directory.CreateDirectory(directory);
         var filename = $"{DateTime.Now.ToString("yyyy-MM-dd_HHmm")}.log";
         var path = directory + filename;
         using var fileStream = File.CreateText(path);

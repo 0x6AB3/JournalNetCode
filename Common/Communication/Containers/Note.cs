@@ -15,16 +15,16 @@ public sealed class Note // AES GCM with 256-bit key used for encryption/decrypt
     [JsonInclude]
     public byte[] SecurityTag { get; private set; }
     [JsonInclude]
-    public DateTime TimeOfCreation { get; private set; }
+    public DateTime LastModified { get; private set; }
     
     [JsonConstructor]
-    public Note(string title, byte[] internalData, byte[] initVector, byte[] securityTag, DateTime timeOfCreation)
+    public Note(string title, byte[] internalData, byte[] initVector, byte[] securityTag, DateTime lastModified)
     {
         Title = title;
         InternalData = internalData;
         InitVector = initVector;
         SecurityTag = securityTag;
-        TimeOfCreation = timeOfCreation;
+        LastModified = lastModified;
     }
     
     public Note(string title = "New note")
@@ -33,7 +33,7 @@ public sealed class Note // AES GCM with 256-bit key used for encryption/decrypt
         InternalData = new byte[1];
         InitVector = new byte[AesGcm.NonceByteSizes.MaxSize];
         SecurityTag = new byte[AesGcm.TagByteSizes.MaxSize];
-        TimeOfCreation = DateTime.Now;
+        LastModified = DateTime.Now;
     }
 
     public void SetText(string plaintext, byte[] encryptionKey) 

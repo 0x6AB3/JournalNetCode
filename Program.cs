@@ -23,7 +23,7 @@ class Program
         var hashPrep1 = hashing.DeriveHash(authHash1, salt);
         var hashPrep2 = hashing.DeriveHash(authHash2, salt);
         Console.WriteLine(hashing.CompareAuthHash(hashPrep1, authHash2, salt));
-        */
+        
         var journalServer = new Server("127.0.0.1", 9600, true);
         journalServer.Start();
         Console.ReadLine();
@@ -38,13 +38,8 @@ class Program
         await client.LogIn(email, password);
         await client.GetLoggedIn();
         journalServer.Stop();
-/*
-        Console.Write("Email address: ");
-        var email = Console.ReadLine();
-
-        Console.Write("Password: ");
-        var password = Console.ReadLine();
-
+/**/
+        
         Console.WriteLine("Generating encryption key...");
         var hashingAlgorithm = new PasswordHashing();
         var encryptionKey = hashingAlgorithm.GetEncryptionKey("password", "name@email.com");
@@ -52,7 +47,7 @@ class Program
 
         Console.Write("Note title: ");
         var note = new Note(Console.ReadLine());
-        Console.WriteLine($"Note creation at = {note.TimeOfCreation}");
+        Console.WriteLine($"Note created on {note.LastModified}");
         Console.Write("Note content: ");
         note.SetText(Console.ReadLine(), encryptionKey);
 
@@ -70,7 +65,7 @@ class Program
         Console.WriteLine($"Content = {Cast.BytesToBase64(recoveredNote.InternalData)}");
         Console.WriteLine($"IV = {Cast.BytesToBase64(recoveredNote.InitVector)}");
         Console.WriteLine($"Tag = {Cast.BytesToBase64(recoveredNote.SecurityTag)}");
-        Console.WriteLine($"Creation date = {recoveredNote.TimeOfCreation}");
+        Console.WriteLine($"Last modified = {recoveredNote.LastModified}");
         Console.WriteLine($"Decrypted text: {recoveredNote.GetText(encryptionKey)}");
 
         /*

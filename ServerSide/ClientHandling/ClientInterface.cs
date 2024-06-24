@@ -51,7 +51,7 @@ public class ClientInterface
             case ClientRequestType.LogIn:
                 if (!clientRequest.TryGetLoginDetails(out var loginDetails))
                 {
-                    Logger.AppendError($"Error during {clientRequest.RequestType}", "Unable to deserialise LoginDetails JSON string");
+                    Logger.AppendError($"Error during {clientRequest.RequestType.ToString().ToLower()}", "Unable to deserialise LoginDetails JSON string");
                     DispatchError("Unable to deserialise the body of ClientRequest (LoginDetails JSON)");
                 }
                 response = clientRequest.RequestType == ClientRequestType.SignUp
@@ -63,9 +63,9 @@ public class ClientInterface
                 if (response.ResponseType == ServerResponseType.Success) 
                 {
                     _email = loginDetails.Email; // Null check in RequestHandler.cs
-                    Logger.AppendMessage($"{Identifier()} Successful {clientRequest.RequestType}");
+                    Logger.AppendMessage($"{Identifier()} Successful {clientRequest.RequestType.ToString().ToLower()}");
                 }
-                else { Logger.AppendWarn($"{Identifier()} {clientRequest.RequestType} error: {response.Body}"); } 
+                else { Logger.AppendWarn($"{Identifier()} {clientRequest.RequestType.ToString().ToLower()} error: {response.Body}"); } 
                 break;
             case ClientRequestType.PostNote:
             case ClientRequestType.GetNote:
