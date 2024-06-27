@@ -20,16 +20,17 @@ class Program
         journalServer.Start();
         Console.ReadLine();
         var client = new Client("127.0.0.1", 9600);
-        await client.GetLoggedIn();
-        await client.LogIn(email, password);
-        await client.GetLoggedIn();
-        await client.SignUp(email, password);
-        await client.GetLoggedIn();
-        await client.LogIn(email, password + " wrong noise");
-        await client.GetLoggedIn();
-        await client.LogIn(email, password);
-        await client.GetLoggedIn();
+        await client.GetLoggedIn(); // not logged in yet
+        await client.LogIn(email, password); // account doesn't exist
+        await client.GetLoggedIn(); // not logged in yet
+        await client.SignUp(email, password); // account created (hopefully)
+        await client.GetLoggedIn(); // logged in
+        await client.LogIn(email, password + " wrong noise"); // incorrect password
+        await client.GetLoggedIn(); // logged in (because of signup)
+        await client.LogIn(email, password); // success
+        await client.GetLoggedIn(); // logged in
         
+        // Creating a note and sending it to the server
         Console.WriteLine("Generating encryption key...");
         var hashingAlgorithm = new PasswordHashing();
         var encryptionKey = hashingAlgorithm.GetEncryptionKey(password, email);

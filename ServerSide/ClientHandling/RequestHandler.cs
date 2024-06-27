@@ -41,16 +41,14 @@ public static class RequestHandler
         return new ServerResponse() { Body = $"You are not logged in to an account {endPoint}", ResponseType = ServerResponseType.Failure };
     }
 
-    public static ServerResponse PostNote(string noteJson, string email)
+    public static ServerResponse PostNote(Note? note, string email)
     {
-        var note = JsonSerializer.Deserialize<Note>(noteJson);
         if (note == null) 
             return new ServerResponse() { Body = "Invalid note structure", ResponseType = ServerResponseType.Failure };
+        if (DatabaseHandler.PostNote(note, email))
+            return new ServerResponse() { Body = "Note successfully uploaded", ResponseType = ServerResponseType.Success };
+        else
+            return new ServerResponse() { Body = "The server is unable to save this note", ResponseType = ServerResponseType.Failure };
         
-        var guid = DatabaseHandler.GetGuid(email);
-        var dir = Directory.GetCurrentDirectory() + $"/Notes/{guid}";
-        Directory.CreateDirectory(dir);
-        File.WriteAllText($"{dir}/{note.Title}.Json", note.Serialise());
-        return new ServerResponse() { Body = "Note successfully uploaded", ResponseType = ServerResponseType.Success };
     }
 }

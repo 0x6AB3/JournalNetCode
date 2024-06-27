@@ -1,6 +1,7 @@
 ﻿using System.Collections.Specialized;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using JournalNetCode.Common.Communication.Containers;
 using JournalNetCode.Common.Security;
 using JournalNetCode.Common.Utility;
 using Microsoft.Data.Sqlite;
@@ -11,74 +12,53 @@ namespace JournalNetCode.ServerSide.Database;
 public static class DatabaseHandler // Parameterised sql
 {
     private static string? DBPath { get; set; } // Reconsider this if class is used in multithreaded env
-    private static void GetPath()
-    {
-        // Skip if DBPath already found
-        if (DBPath != null)
-        {
-            return;
-        }
-        
-        const string dbFileName = "JournalDB.db";
-        const string targetDir = "JournalNetCode"; // The project parent directory
-        var dir = Directory.GetCurrentDirectory();
-
-        try
-        {
-            var end = dir.IndexOf(targetDir) + targetDir.Length; // Project parent directory (e.g: /test/example/parent)
-            DBPath = "Data Source=" + Path.Combine(dir[0..end], dbFileName); // Merging parent directory and db file (e.g: /test/example/parent/database.db)
-        }
-        catch (Exception ex)
-        {
-            Logger.AppendError("Error: Cannot locate SQLite database file",
-                $"Ensure JournalDB.db is located in JournalNetCode/\n{ex.Message}");
-            throw new Exception("Unable to locate SQLite database");
-        }
-    }
-
-    private static SqliteConnection GetConnection()
-    {
-        GetPath();
-        var connection = new SqliteConnection(DBPath);
-        connection.Open();
-        return connection;
-    }
-
-    private static void DisposeConnection(SqliteConnection connection)
-    {
-        connection.Close();
-        connection.Dispose();
-    }
     
     // Paramaterised SQL is used to prevent SQL attacks
     // All below return 'true' on success
-    public static void AddNote()
+    public static void GetNote() // todo
     {
-        GetPath();
-    }
-    public static void GetNote()
-    {
-        GetPath();
+        
     }
 
-    public static string? GetGuid(string email)
+    public static bool PostNote(Note note, string email) // refactor and make naming less confusing
     {
-        const string action = "SELECT GUID FROM tblAccounts " +
-                              "WHERE Email = @email";
+        var guid = GetGuid(email);
+        var id = Guid.NewGuid().ToString();
+        
+        // Writing to file
+        var dir = Directory.GetCurrentDirectory() + $"/Notes/{guid}";
+        Directory.CreateDirectory(dir);
+        var path = $"{dir}/{note.Title}.Json";
+        File.WriteAllText(path, note.Serialise());
+        
+        // Updating database to reflect changes
+        const string action = "INSERT INTO tblNotes (ID, Path) " +
+                              "VALUES (@ID, @Path)";
+        const string action2= "INSERT INTO tblUserNotes (GUID, ID) " +
+                              "VALUES (@GUID, @ID)";
         
         var connection = GetConnection();
-        using var command = new SqliteCommand(action, connection);
-        command.Parameters.AddWithValue("@email", email);
-
-        string? guid = null;
-        using var reader = command.ExecuteReader();
-        if (reader.Read())
-        {
-            guid = reader.GetString(0);
-        }
         
+        using var command = new SqliteCommand(action, connection);
+        command.Parameters.AddWithValue("@ID", id);
+        command.Parameters.AddWithValue("@Path", path);
+        using var command2 = new SqliteCommand(action2, connection);
+        command2.Parameters.AddWithValue("@GUID", guid);
+        command2.Parameters.AddWithValue("@ID", id);
+        
+        var (success, success2) = (false, false);
+        try
+        {
+            success = command.ExecuteNonQuery() > 0; // Checks if any rows have been changed (true if inserted)
+            success2 = command2.ExecuteNonQuery() > 0;
+        }
+        catch (SqliteException ex)
+        {
+            Logger.AppendError($"SQL error during note upload", ex.Message);
+            
+        }
         DisposeConnection(connection);
-        return guid;
+        return success && success2;
     }
     
     public static bool LogIn(string email, string b64ReceivedAuthHash) // Auth hash sent by client (before hashing for storage)
@@ -114,6 +94,7 @@ public static class DatabaseHandler // Parameterised sql
         DisposeConnection(connection);
         return success;
     }
+    
     public static bool SignUp(string email, string b64ReceivedAuthHash) // Auth hash to be stored (sent by client)
     {
         const string action = "INSERT INTO tblAccounts (GUID, Email, B64AuthHash, B64Salt) " +
@@ -151,6 +132,7 @@ public static class DatabaseHandler // Parameterised sql
         DisposeConnection(connection);
         return success;
     }
+    
     public static bool AccountExists(string email)
     {
         const string action = "SELECT Email FROM tblAccounts " +
@@ -165,5 +147,64 @@ public static class DatabaseHandler // Parameterised sql
         
         DisposeConnection(connection);
         return exists;
+    }
+    
+    private static string? GetGuid(string email)
+    {
+        const string action = "SELECT GUID FROM tblAccounts " +
+                              "WHERE Email = @email";
+        
+        var connection = GetConnection();
+        using var command = new SqliteCommand(action, connection);
+        command.Parameters.AddWithValue("@email", email);
+
+        string? guid = null;
+        using var reader = command.ExecuteReader();
+        if (reader.Read())
+        {
+            guid = reader.GetString(0);
+        }
+        
+        DisposeConnection(connection);
+        return guid;
+    }
+    
+    private static void GetPath()
+    {
+        // Skip if DBPath already found
+        if (DBPath != null)
+        {
+            return;
+        }
+        
+        const string dbFileName = "JournalDB.db";
+        const string targetDir = "JournalNetCode"; // The project parent directory
+        var dir = Directory.GetCurrentDirectory();
+
+        try
+        {
+            var end = dir.IndexOf(targetDir) + targetDir.Length; // Project parent directory (e.g: /test/example/parent)
+            DBPath = "Data Source=" + Path.Combine(dir[0..end], dbFileName); // Merging parent directory and db file (e.g: /test/example/parent/database.db)
+        }
+        catch (Exception ex)
+        {
+            Logger.AppendError("Error: Cannot locate SQLite database file",
+                $"Ensure JournalDB.db is located in JournalNetCode/\n{ex.Message}");
+            throw new Exception("Unable to locate SQLite database");
+        }
+    }
+    
+    private static SqliteConnection GetConnection()
+    {
+        GetPath();
+        var connection = new SqliteConnection(DBPath);
+        connection.Open();
+        return connection;
+    }
+    
+    private static void DisposeConnection(SqliteConnection connection)
+    {
+        connection.Close();
+        connection.Dispose();
     }
 }

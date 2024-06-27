@@ -84,7 +84,8 @@ public class ClientInterface
                     return;
                 }
 
-                response = RequestHandler.PostNote(clientRequest.Body, _email);
+                var note = JsonSerializer.Deserialize<Note>(clientRequest.Body);
+                response = RequestHandler.PostNote(note, _email);
                 DispatchResponse(response);
                 if (response.ResponseType == ServerResponseType.Success) 
                     Logger.AppendMessage($"{GetIdentifier()} Successful {clientRequest.RequestType.ToString().ToLower()}");
