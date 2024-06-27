@@ -9,6 +9,7 @@ public sealed class ClientRequest : CommunicationContainer
 {
     public ClientRequestType RequestType { get; set; }
 
+    // Null check and deserialisation
     public bool TryGetLoginDetails(out LoginDetails? loginDetails)
     {
         if (Body != null)

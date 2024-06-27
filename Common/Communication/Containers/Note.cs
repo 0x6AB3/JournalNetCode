@@ -38,6 +38,7 @@ public sealed class Note // AES GCM with 256-bit key used for encryption/decrypt
 
     public void SetText(string plaintext, byte[] encryptionKey) 
     {
+        LastModified = DateTime.Now;
         RandomNumberGenerator.Fill(InitVector); // generating new iv/nonce (reusing poses security risk)
         var plaintextBytes = Cast.StringToBytes(plaintext); // encoding plaintext
         InternalData = new byte[plaintextBytes.Length]; // preparing to hold ciphertext

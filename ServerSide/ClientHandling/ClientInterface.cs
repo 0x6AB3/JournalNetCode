@@ -1,8 +1,11 @@
 ﻿using System.Net;
+using System.Runtime.Intrinsics.Arm;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using JournalNetCode.Common.Communication.Containers;
 using JournalNetCode.Common.Communication.Types;
 using JournalNetCode.Common.Utility;
+using JournalNetCode.ServerSide.Database;
 using JournalNetCode.ServerSide.Logging;
 
 namespace JournalNetCode.ServerSide.ClientHandling;
@@ -13,7 +16,7 @@ public class ClientInterface
     private HttpListenerContext? _context;
     private string? _email;
 
-    private string Identifier()
+    private string GetIdentifier()
     {
         var identifier = _email ?? "";
         if (identifier.Length != 0)
@@ -32,6 +35,7 @@ public class ClientInterface
     public async Task Process(HttpListenerContext context)
     {
         _context = context;
+        
         var request = _context.Request;
         if (request.HttpMethod != "POST")
         {
@@ -42,18 +46,23 @@ public class ClientInterface
         // Null check on ClientRequest data received with POST
         var clientRequest = await GetClientRequest(request);
         if (clientRequest == null || clientRequest.Body == null)
-        { DispatchError("Please provide a valid [ClientRequest JSON] with your POST request"); return; }
-        Logger.AppendMessage($"{Identifier()} requests {clientRequest.RequestType.ToString().ToLower()}");
+        {
+            DispatchError("Please provide a valid [ClientRequest JSON] with your POST request"); 
+            return;
+        }
+        Logger.AppendMessage($"Received {clientRequest.RequestType.ToString().ToLower()} request from {GetIdentifier()}");
+        
         ServerResponse response;
         switch (clientRequest.RequestType)
         {
             case ClientRequestType.SignUp:
             case ClientRequestType.LogIn:
-                if (!clientRequest.TryGetLoginDetails(out var loginDetails))
+                if (!clientRequest.TryGetLoginDetails(out var loginDetails)) // null check on loginDetails performed here
                 {
                     Logger.AppendError($"Error during {clientRequest.RequestType.ToString().ToLower()}", "Unable to deserialise LoginDetails JSON string");
                     DispatchError("Unable to deserialise the body of ClientRequest (LoginDetails JSON)");
                 }
+                
                 response = clientRequest.RequestType == ClientRequestType.SignUp
                     ? RequestHandler.HandleSignUp(loginDetails)
                     : RequestHandler.HandleLogIn(loginDetails);
@@ -63,19 +72,35 @@ public class ClientInterface
                 if (response.ResponseType == ServerResponseType.Success) 
                 {
                     _email = loginDetails.Email; // Null check in RequestHandler.cs
-                    Logger.AppendMessage($"{Identifier()} Successful {clientRequest.RequestType.ToString().ToLower()}");
+                    Logger.AppendMessage($"{GetIdentifier()} Successful {clientRequest.RequestType.ToString().ToLower()}");
                 }
-                else { Logger.AppendWarn($"{Identifier()} {clientRequest.RequestType.ToString().ToLower()} error: {response.Body}"); } 
+                else
+                    Logger.AppendWarn($"{GetIdentifier()} {clientRequest.RequestType.ToString().ToLower()} error: {response.Body}"); 
                 break;
-            case ClientRequestType.PostNote:
-            case ClientRequestType.GetNote:
-                break; // TODO
-            case ClientRequestType.GetLoggedIn:
+            case ClientRequestType.PostNote: // TODO
+                if (_email == null) // Check if client is logged into an account
+                {
+                    DispatchError("You are not logged in to an account in this session; sign-up/log-in to account before requesting PostNote");
+                    return;
+                }
+
+                response = RequestHandler.PostNote(clientRequest.Body, _email);
+                DispatchResponse(response);
+                if (response.ResponseType == ServerResponseType.Success) 
+                    Logger.AppendMessage($"{GetIdentifier()} Successful {clientRequest.RequestType.ToString().ToLower()}");
+                else
+                    Logger.AppendError($"Error during {clientRequest.RequestType.ToString().ToLower()}", "Received note has invalid structure");
+                break;
+            case ClientRequestType.GetNote: // TODO
+                break;
+            case ClientRequestType.LoginStatus:
                 response = RequestHandler.GetLoggedIn(_email, remoteEndPoint.ToString());
                 DispatchResponse(response);
                 break;
+            case ClientRequestType.GetNoteList:
+                break;
             default: 
-                DispatchError("Unsupported request; POST [valid sub-request] instead");
+                DispatchError("Unsupported request; POST [valid ClientRequestType] instead");
                 break;
         }
     }
@@ -104,12 +129,12 @@ public class ClientInterface
             response.OutputStream.Write(messageOut);
             response.OutputStream.Close();
             response.Close();
-            Logger.AppendMessage($"{serverResponse.Body} --> {Identifier()}");
+            Logger.AppendMessage($"{serverResponse.Body} --> {GetIdentifier()}");
             return true;
         }
         catch (Exception ex)
         {
-            Logger.AppendError($"Error while sending ServerResponse JSON to {Identifier()}", ex.Message);
+            Logger.AppendError($"Error while sending ServerResponse JSON to {GetIdentifier()}", ex.Message);
             return false;
         }
     }
@@ -122,6 +147,7 @@ public class ClientInterface
                    + $"Additional information: {addendum}",
             ResponseType = ServerResponseType.Failure
         };
+        Logger.AppendWarn($"Invalid POST request from {GetIdentifier()}");
         DispatchResponse(serverResponse);
     }
 }

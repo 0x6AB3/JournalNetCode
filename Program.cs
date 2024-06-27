@@ -14,16 +14,8 @@ class Program
     static async Task Main()
     {
         var email = $"{new Random().Next(100000, 1000000)}@test.com";
-        var password = "password123";
-        /*
-        var hashing = new PasswordHashing();
-        var (authHash1, encryptionKey1) = hashing.GetAuthHash(email, password);
-        var (authHash2, encryptionKey2) = hashing.GetAuthHash(email, password);
-        var salt = PasswordHashing.GenerateSalt(16);
-        var hashPrep1 = hashing.DeriveHash(authHash1, salt);
-        var hashPrep2 = hashing.DeriveHash(authHash2, salt);
-        Console.WriteLine(hashing.CompareAuthHash(hashPrep1, authHash2, salt));
-        
+        const string password = "password123";
+
         var journalServer = new Server("127.0.0.1", 9600, true);
         journalServer.Start();
         Console.ReadLine();
@@ -37,12 +29,10 @@ class Program
         await client.GetLoggedIn();
         await client.LogIn(email, password);
         await client.GetLoggedIn();
-        journalServer.Stop();
-/**/
         
         Console.WriteLine("Generating encryption key...");
         var hashingAlgorithm = new PasswordHashing();
-        var encryptionKey = hashingAlgorithm.GetEncryptionKey("password", "name@email.com");
+        var encryptionKey = hashingAlgorithm.GetEncryptionKey(password, email);
         Console.WriteLine($"Generated encryption key: {Cast.BytesToBase64(encryptionKey)}");
 
         Console.Write("Note title: ");
@@ -68,7 +58,17 @@ class Program
         Console.WriteLine($"Last modified = {recoveredNote.LastModified}");
         Console.WriteLine($"Decrypted text: {recoveredNote.GetText(encryptionKey)}");
 
-        /*
+        Console.WriteLine($"Sending note to server...");
+        if (await client.PostNote(recoveredNote))
+            Console.WriteLine($"success!");
+        else
+            Console.WriteLine($"failure.");
+        
+        // add graceful logout
+        journalServer.Stop();
+    }
+}
+/* flood demo
         for (var i = 0; i < 100; i++)
         {
             var demoClient = new Client("127.0.0.1", 9600);
@@ -78,7 +78,4 @@ class Program
             var password = $"{id}";
             await demoClient.SignUp(email, password);
             await demoClient.LogIn(email, password);
-        }
-        journalServer.Stop();*/
-    }
-}
+        }*/

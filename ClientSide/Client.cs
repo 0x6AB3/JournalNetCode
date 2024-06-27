@@ -46,11 +46,11 @@ public class Client
     
     public async Task<bool> GetLoggedIn()
     {
-        var request = new ClientRequest() { Body = "0x6ab3;)", RequestType = ClientRequestType.GetLoggedIn };
+        var request = new ClientRequest() { Body = "Am I logged in?", RequestType = ClientRequestType.LoginStatus };
         return await SendRequest(request);
     }
     
-    public async Task<bool> UploadNote(Note note)
+    public async Task<bool> PostNote(Note note)
     {
         var noteJson = note.Serialise();
         var request = new ClientRequest() {Body = noteJson, RequestType = ClientRequestType.PostNote};

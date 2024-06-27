@@ -2,6 +2,7 @@
 using JournalNetCode.Common.Communication.Types;
 using JournalNetCode.Common.Utility;
 using JournalNetCode.ServerSide.Database;
+using System.Text.Json;
 
 namespace JournalNetCode.ServerSide.ClientHandling;
 
@@ -9,7 +10,7 @@ public static class RequestHandler
 {
     public static ServerResponse HandleLogIn(LoginDetails? loginDetails)
     {
-        if (loginDetails == null ) 
+        if (loginDetails == null) 
             return new ServerResponse() { Body = "Please supply login details", ResponseType = ServerResponseType.Failure };
 
         if (!DatabaseHandler.AccountExists(loginDetails.Email))
@@ -38,5 +39,18 @@ public static class RequestHandler
             return new ServerResponse() { Body = $"You are logged in to {email}", ResponseType = ServerResponseType.Success };
         
         return new ServerResponse() { Body = $"You are not logged in to an account {endPoint}", ResponseType = ServerResponseType.Failure };
+    }
+
+    public static ServerResponse PostNote(string noteJson, string email)
+    {
+        var note = JsonSerializer.Deserialize<Note>(noteJson);
+        if (note == null) 
+            return new ServerResponse() { Body = "Invalid note structure", ResponseType = ServerResponseType.Failure };
+        
+        var guid = DatabaseHandler.GetGuid(email);
+        var dir = Directory.GetCurrentDirectory() + $"/Notes/{guid}";
+        Directory.CreateDirectory(dir);
+        File.WriteAllText($"{dir}/{note.Title}.Json", note.Serialise());
+        return new ServerResponse() { Body = "Note successfully uploaded", ResponseType = ServerResponseType.Success };
     }
 }

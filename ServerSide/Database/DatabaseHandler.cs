@@ -60,10 +60,31 @@ public static class DatabaseHandler // Parameterised sql
     {
         GetPath();
     }
-    public static bool LogIn(string email, string receivedAuthHashB64) // Auth hash sent by client (before hashing for storage)
+
+    public static string? GetGuid(string email)
     {
-        const string action = "SELECT AuthHashB64, AuthSaltB64 FROM tblAccounts " +
+        const string action = "SELECT GUID FROM tblAccounts " +
                               "WHERE Email = @email";
+        
+        var connection = GetConnection();
+        using var command = new SqliteCommand(action, connection);
+        command.Parameters.AddWithValue("@email", email);
+
+        string? guid = null;
+        using var reader = command.ExecuteReader();
+        if (reader.Read())
+        {
+            guid = reader.GetString(0);
+        }
+        
+        DisposeConnection(connection);
+        return guid;
+    }
+    
+    public static bool LogIn(string email, string b64ReceivedAuthHash) // Auth hash sent by client (before hashing for storage)
+    {
+        const string action = "SELECT B64AuthHash, B64Salt FROM tblAccounts" +
+                              " WHERE Email = @email";
         
         var connection = GetConnection();
         using var command = new SqliteCommand(action, connection);
@@ -75,12 +96,12 @@ public static class DatabaseHandler // Parameterised sql
         {
             // Once the server receives an authentication hash from a client, a random salt is applied to and stored alongside the new hash
             // This is done to prevent precomputed hash attacks because a random salt is not used before this step
-            var authHashB64 = reader.GetString(0);
-            var storedAuthHash = Cast.Base64ToBytes(authHashB64);
-            var authSaltB64 = reader.GetString(1);
-            var storedAuthSalt = Cast.Base64ToBytes(authSaltB64);
+            var b64AuthHash = reader.GetString(0);
+            var storedAuthHash = Cast.Base64ToBytes(b64AuthHash);
+            var b64Salt = reader.GetString(1);
+            var storedAuthSalt = Cast.Base64ToBytes(b64Salt);
 
-            var authHashToCompare = Cast.Base64ToBytes(receivedAuthHashB64);
+            var authHashToCompare = Cast.Base64ToBytes(b64ReceivedAuthHash);
             
             var hashingAlgorithm = new PasswordHashing();
             success = hashingAlgorithm.CompareAuthHash(storedAuthHash, authHashToCompare, storedAuthSalt);
@@ -93,26 +114,29 @@ public static class DatabaseHandler // Parameterised sql
         DisposeConnection(connection);
         return success;
     }
-    public static bool SignUp(string email, string receivedAuthHashB64) // Auth hash to be stored (sent by client)
+    public static bool SignUp(string email, string b64ReceivedAuthHash) // Auth hash to be stored (sent by client)
     {
-        const string action = "INSERT INTO tblAccounts (Email, AuthHashB64, AuthSaltB64) " +
-                              "VALUES (@email, @authHashB64, @authSaltB64)";
+        const string action = "INSERT INTO tblAccounts (GUID, Email, B64AuthHash, B64Salt) " +
+                              "VALUES (@guid, @email, @b64AuthHash, @b64Salt)";
 
-        var receivedAuthHash = Cast.Base64ToBytes(receivedAuthHashB64);
+        var guid = Guid.NewGuid().ToString();
+        
+        var receivedAuthHash = Cast.Base64ToBytes(b64ReceivedAuthHash);
         var salt = PasswordHashing.GenerateSalt(16);
-        var saltB64 = Cast.BytesToBase64(salt);
+        var b64Salt = Cast.BytesToBase64(salt);
         
         // Hashing the authentication hash with a random salt to prevent rainbow table attacks
         // Random salts are not used before this step (email is used as a unique salt for encryption key and auth hash)
         var hashingAlgorithm = new PasswordHashing();
         var authHashPrepared = hashingAlgorithm.DeriveHash(receivedAuthHash, salt);
-        var authHashPreparedB64 = Cast.BytesToBase64(authHashPrepared);
+        var b64AuthHashPrepared = Cast.BytesToBase64(authHashPrepared);
 
         var connection = GetConnection();
         using var command = new SqliteCommand(action, connection);
+        command.Parameters.AddWithValue("@guid", guid);
         command.Parameters.AddWithValue("@email", email);
-        command.Parameters.AddWithValue("@authHashB64", authHashPreparedB64);
-        command.Parameters.AddWithValue("@authSaltB64", saltB64);
+        command.Parameters.AddWithValue("@b64AuthHash", b64AuthHashPrepared);
+        command.Parameters.AddWithValue("@b64Salt", b64Salt);
         
         var success = false;
         try
