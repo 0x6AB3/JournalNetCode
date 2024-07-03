@@ -63,6 +63,15 @@ public sealed class Note // AES GCM with 256-bit key used for encryption/decrypt
         return path;
     }
 
+    public override string ToString()
+    {
+        return $"Title: {Title}" +
+               $"\nInternalData: {Cast.BytesToBase64(InternalData)}" +
+               $"\nInitVector: {Cast.BytesToBase64(InitVector)}" +
+               $"\nSecurityTag: {Cast.BytesToBase64(SecurityTag)}" +
+               $"\nLastModified: {LastModified}";
+    }
+
     public string Serialise()
     {
         return Cast.ObjectToJson(this);

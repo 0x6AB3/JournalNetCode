@@ -1,28 +1,86 @@
-﻿using System.Collections.Specialized;
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
-using JournalNetCode.Common.Communication.Containers;
+﻿using JournalNetCode.Common.Communication.Containers;
 using JournalNetCode.Common.Security;
 using JournalNetCode.Common.Utility;
-using Microsoft.Data.Sqlite;
 using JournalNetCode.ServerSide.Logging;
+using Microsoft.Data.Sqlite;
 
 namespace JournalNetCode.ServerSide.Database;
 
-public static class DatabaseHandler // Parameterised sql
+public static class DatabaseHandler // Parameterised SQL is used to prevent SQL attacks
 {
     private static string? DBPath { get; set; } // Reconsider this if class is used in multithreaded env
-    
-    // Paramaterised SQL is used to prevent SQL attacks
-    // All below return 'true' on success
-    public static void GetNote() // todo
-    {
-        
-    }
 
+    public static string? GetNoteTitles(string email)
+    {
+        var guid = GetGuid(email);
+        if (guid == null)
+            return null;
+
+        const string action = "SELECT tblNotes.Title FROM tblNotes " +
+                              "INNER JOIN tblUserNotes ON tblUserNotes.ID = tblNotes.ID " +
+                              "INNER JOIN tblAccounts ON tblAccounts.GUID = tblUserNotes.GUID " +
+                              "WHERE tblAccounts.GUID = @GUID";
+        
+        var connection = GetConnection();
+        using var command = new SqliteCommand(action, connection);
+        command.Parameters.AddWithValue("@GUID", guid);
+        
+        var titles = "";
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+            titles += reader.GetString(0) + "`";
+
+        DisposeConnection(connection);
+        
+        return titles == "" ? null : titles;
+    }
+    
+    public static string? GetNoteJson(string email, string noteTitle) // todo
+    {
+        var guid = GetGuid(email);
+        if (guid == null)
+            return null;
+
+        const string action = "SELECT tblNotes.Path FROM tblNotes " +
+                              "INNER JOIN tblUserNotes ON tblUserNotes.ID = tblNotes.ID " +
+                              "INNER JOIN tblAccounts ON tblAccounts.GUID = tblUserNotes.GUID " +
+                              "WHERE tblAccounts.GUID = @GUID " +
+                              "AND tblNotes.Title = @Title";
+        
+        var connection = GetConnection();
+        using var command = new SqliteCommand(action, connection);
+        command.Parameters.AddWithValue("@GUID", guid);
+        command.Parameters.AddWithValue("@Title", noteTitle);
+        
+        string? path = null;
+        using var reader = command.ExecuteReader();
+        if (reader.Read())
+            path = reader.GetString(0);
+        
+        DisposeConnection(connection);
+        if (path == null)
+            return path;
+        
+        // Retrieving note content
+        try
+        {
+            var noteJson = File.ReadAllText(path);
+            return noteJson;
+        }
+        catch (Exception ex)
+        {
+            Logger.AppendError("Error while reading Note JSON", ex.Message);
+            return null;
+        }
+    }
+    
+    // All below return 'true' on success
     public static bool PostNote(Note note, string email) // refactor and make naming less confusing
     {
         var guid = GetGuid(email);
+        if (guid == null)
+            return false;
+        
         var id = Guid.NewGuid().ToString();
         
         // Writing to file
@@ -32,8 +90,8 @@ public static class DatabaseHandler // Parameterised sql
         File.WriteAllText(path, note.Serialise());
         
         // Updating database to reflect changes
-        const string action = "INSERT INTO tblNotes (ID, Path) " +
-                              "VALUES (@ID, @Path)";
+        const string action = "INSERT INTO tblNotes (ID, Path, Title) " +
+                              "VALUES (@ID, @Path, @Title)";
         const string action2= "INSERT INTO tblUserNotes (GUID, ID) " +
                               "VALUES (@GUID, @ID)";
         
@@ -42,6 +100,7 @@ public static class DatabaseHandler // Parameterised sql
         using var command = new SqliteCommand(action, connection);
         command.Parameters.AddWithValue("@ID", id);
         command.Parameters.AddWithValue("@Path", path);
+        command.Parameters.AddWithValue("@Title", note.Title);
         using var command2 = new SqliteCommand(action2, connection);
         command2.Parameters.AddWithValue("@GUID", guid);
         command2.Parameters.AddWithValue("@ID", id);
@@ -169,7 +228,7 @@ public static class DatabaseHandler // Parameterised sql
         return guid;
     }
     
-    private static void GetPath()
+    private static void GetPath() // sets the DBPath string (to the database path)
     {
         // Skip if DBPath already found
         if (DBPath != null)

@@ -52,11 +52,7 @@ class Program
         var recoveredNote = JsonSerializer.Deserialize<Note>(content);
 
         Console.WriteLine($"Deserialised note:");
-        Console.WriteLine($"Title = {recoveredNote.Title}");
-        Console.WriteLine($"Content = {Cast.BytesToBase64(recoveredNote.InternalData)}");
-        Console.WriteLine($"IV = {Cast.BytesToBase64(recoveredNote.InitVector)}");
-        Console.WriteLine($"Tag = {Cast.BytesToBase64(recoveredNote.SecurityTag)}");
-        Console.WriteLine($"Last modified = {recoveredNote.LastModified}");
+        Console.WriteLine(recoveredNote.ToString());
         Console.WriteLine($"Decrypted text: {recoveredNote.GetText(encryptionKey)}");
 
         Console.WriteLine($"Sending note to server...");
@@ -64,6 +60,28 @@ class Program
             Console.WriteLine($"success!");
         else
             Console.WriteLine($"failure.");
+        
+        
+        Console.WriteLine("Deleting note locally...");
+        File.Delete(path); // deleting the note
+        Console.WriteLine("Deleted!");
+        
+        Console.WriteLine("Retrieving note titles:");
+        var titles = await client.GetNoteTitles();
+        for (var i = 0; i < titles.Length; i++)
+        {
+            Console.WriteLine($"{i+1}\t{titles[i]}");
+        }
+
+        if (titles.Contains(note.Title) && await client.GetNote(note.Title))
+        {
+            Console.WriteLine($"Retrieved note: {note.Title}");
+        }
+        Console.WriteLine("Deserialising note...");   
+        var serverNote = JsonSerializer.Deserialize<Note>( File.ReadAllText(path));
+        Console.WriteLine("Deserialised!");
+        Console.WriteLine(serverNote.ToString());
+        Console.WriteLine($"Decrypted text: {serverNote.GetText(encryptionKey)}");
         
         // add graceful logout
         journalServer.Stop();

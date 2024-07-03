@@ -11,7 +11,7 @@ public static class ClientCollection
 
     public static ClientInterface? GetClient(IPEndPoint endPoint) // null if not found
     {
-        var client = ClientInterfaces.FirstOrDefault(connected => connected.remoteEndPoint.Equals(endPoint));
+        var client = ClientInterfaces.FirstOrDefault(connected => connected.RemoteEndPoint.Equals(endPoint));
         return client;
     }
 }
