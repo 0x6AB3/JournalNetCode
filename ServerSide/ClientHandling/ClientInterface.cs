@@ -97,6 +97,13 @@ public class ClientInterface
                     return;
                 response = RequestHandler.DeleteNote(clientRequest.Body, _email);
                 break;
+            /////////////////////////////////////// DELETING USER ACCOUNT ///////////////
+            case ClientRequestType.DeleteAccount:
+                if (!LoginCheck())
+                    return;
+                response = RequestHandler.DeleteAccount(_email);
+                _email = null;
+                break;
             /////////////////////////////////////// ERRONEOUS ///////////////////////////
             default: 
                 DispatchError($"Unsupported ClientRequestType");

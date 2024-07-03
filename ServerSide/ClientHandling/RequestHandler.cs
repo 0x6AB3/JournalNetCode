@@ -85,4 +85,14 @@ public static class RequestHandler
             ? new ServerResponse() { Body = "Delete success", ResponseType = ServerResponseType.Success }
             : new ServerResponse() { Body = $"Unable to delete this note", ResponseType = ServerResponseType.Failure };
     }
+    
+    public static ServerResponse DeleteAccount(string? email)
+    {
+        if (email == null)
+            return new ServerResponse() { Body = $"You are not logged in to an account", ResponseType = ServerResponseType.Failure };
+         
+        return DatabaseHandler.DeleteAccount(email)
+            ? new ServerResponse() { Body = "Your account has been deleted", ResponseType = ServerResponseType.Success }
+            : new ServerResponse() { Body = $"Unable to delete your account", ResponseType = ServerResponseType.Failure };
+    }
 }

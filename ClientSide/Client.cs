@@ -87,6 +87,12 @@ public class Client
         var request = new ClientRequest() { Body = name, RequestType = ClientRequestType.DeleteNote };
         return await SendRequest(request);
     }
+    
+    public async Task<bool> DeleteAccount()
+    {
+        var request = new ClientRequest() { RequestType = ClientRequestType.DeleteAccount };
+        return await SendRequest(request);
+    }
 
     private async Task<bool> SendRequest(ClientRequest request)
     {

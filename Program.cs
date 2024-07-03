@@ -84,9 +84,13 @@ class Program
         Console.WriteLine($"Decrypted text: {serverNote.GetText(encryptionKey)}");
         
         Console.WriteLine("Requesting server to delete their copy of the note");
-        var suc = await client.DeleteNote(note.Title);
-        Console.WriteLine($"Success: {suc}");
+        var success = await client.DeleteNote(note.Title);
+        Console.WriteLine($"Success: {success}");
         
+        Console.WriteLine("Requesting server to delete the account");
+        success = await client.DeleteAccount();
+        Console.WriteLine($"Success: {success}");
+        await client.GetLoggedIn(); // not logged in
         // add graceful logout
         journalServer.Stop();
     }

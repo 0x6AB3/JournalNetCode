@@ -10,7 +10,46 @@ public static class DatabaseHandler // Parameterised SQL is used to prevent SQL 
 {
     private static string? DBPath { get; set; } // Reconsider this if class is used in multithreaded env
 
-    public static bool DeleteNote(string email, string title)
+    public static bool DeleteAccount(string email) // todo remove all user notes too
+    {
+        //delete user note folder with name as guid
+        
+        var titles = GetNoteTitles(email);
+        if (titles != null)
+        {
+            foreach (var title in titles.Trim('`').Split('`'))
+            {
+                DeleteNote(email, title);
+            }
+        }
+        
+        var guid = GetGuid(email);
+        
+        Directory.Delete($"./Notes/{guid}");
+        
+        const string action = "DELETE FROM tblAccounts " +
+                               "WHERE tblAccounts.Email = @Email " +
+                               "AND tblAccounts.GUID = @GUID";
+
+        var connection = GetConnection();
+        using var command = new SqliteCommand(action, connection);
+        command.Parameters.AddWithValue("@Email", email);
+        command.Parameters.AddWithValue("@GUID", guid);
+        
+        var success = false;
+        try
+        {
+            success = command.ExecuteNonQuery() > 0;
+        }
+        catch (SqliteException ex)
+        {
+            Logger.AppendError($"SQL error during account deletion", ex.Message);
+        }
+        DisposeConnection(connection);
+        return success;
+    }
+    
+    public static bool DeleteNote(string email, string title) // todo BIG INTERNAL REFACTOR
     {
         var guid = GetGuid(email);
         if (guid == null)
@@ -38,6 +77,7 @@ public static class DatabaseHandler // Parameterised SQL is used to prevent SQL 
         var path = GetNotePath(email, title);
         File.Delete(path);
         
+        // todo merge these
         const string action2 = "DELETE FROM tblNotes " +
                               "WHERE tblNotes.ID = @ID " +
                               "AND tblNotes.Title = @Title";
