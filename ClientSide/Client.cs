@@ -75,11 +75,17 @@ public class Client
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Unable to retrieve your notes from the server (are logged in and have uploaded notes?)" +
+            Console.WriteLine("Unable to retrieve your notes from the server (are you logged in and have uploaded notes?)" +
                               $"\n{ex.Message}");
         }
 
         return titles;
+    }
+
+    public async Task<bool> DeleteNote(string name)
+    {
+        var request = new ClientRequest() { Body = name, RequestType = ClientRequestType.DeleteNote };
+        return await SendRequest(request);
     }
 
     private async Task<bool> SendRequest(ClientRequest request)

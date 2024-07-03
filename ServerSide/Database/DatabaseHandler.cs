@@ -10,38 +10,13 @@ public static class DatabaseHandler // Parameterised SQL is used to prevent SQL 
 {
     private static string? DBPath { get; set; } // Reconsider this if class is used in multithreaded env
 
-    public static string? GetNoteTitles(string email)
+    public static bool DeleteNote(string email, string title)
     {
         var guid = GetGuid(email);
         if (guid == null)
-            return null;
-
-        const string action = "SELECT tblNotes.Title FROM tblNotes " +
-                              "INNER JOIN tblUserNotes ON tblUserNotes.ID = tblNotes.ID " +
-                              "INNER JOIN tblAccounts ON tblAccounts.GUID = tblUserNotes.GUID " +
-                              "WHERE tblAccounts.GUID = @GUID";
+            return false;
         
-        var connection = GetConnection();
-        using var command = new SqliteCommand(action, connection);
-        command.Parameters.AddWithValue("@GUID", guid);
-        
-        var titles = "";
-        using var reader = command.ExecuteReader();
-        while (reader.Read())
-            titles += reader.GetString(0) + "`";
-
-        DisposeConnection(connection);
-        
-        return titles == "" ? null : titles;
-    }
-    
-    public static string? GetNoteJson(string email, string noteTitle) // todo
-    {
-        var guid = GetGuid(email);
-        if (guid == null)
-            return null;
-
-        const string action = "SELECT tblNotes.Path FROM tblNotes " +
+        const string action = "SELECT tblNotes.ID FROM tblNotes " +
                               "INNER JOIN tblUserNotes ON tblUserNotes.ID = tblNotes.ID " +
                               "INNER JOIN tblAccounts ON tblAccounts.GUID = tblUserNotes.GUID " +
                               "WHERE tblAccounts.GUID = @GUID " +
@@ -50,16 +25,51 @@ public static class DatabaseHandler // Parameterised SQL is used to prevent SQL 
         var connection = GetConnection();
         using var command = new SqliteCommand(action, connection);
         command.Parameters.AddWithValue("@GUID", guid);
-        command.Parameters.AddWithValue("@Title", noteTitle);
-        
-        string? path = null;
+        command.Parameters.AddWithValue("@Title", title);
+
+        string? id = null;
         using var reader = command.ExecuteReader();
         if (reader.Read())
-            path = reader.GetString(0);
+            id = reader.GetString(0);
+
+        if (id == null)
+            return false;
         
+        var path = GetNotePath(email, title);
+        File.Delete(path);
+        
+        const string action2 = "DELETE FROM tblNotes " +
+                              "WHERE tblNotes.ID = @ID " +
+                              "AND tblNotes.Title = @Title";
+        
+        const string action3 = "DELETE FROM tblUserNotes " +
+                                "WHERE tblUserNotes.GUID = @GUID " +
+                                "AND tblUserNotes.ID = @ID";
+        
+        using var command2 = new SqliteCommand(action2, connection);
+        command2.Parameters.AddWithValue("@ID", id);
+        command2.Parameters.AddWithValue("@Title", title);
+        using var command3 = new SqliteCommand(action3, connection);
+        command3.Parameters.AddWithValue("@GUID", guid);
+        command3.Parameters.AddWithValue("@ID", id);
+        
+        var (success, success2) = (false, false);
+        try
+        {
+            success2 = command3.ExecuteNonQuery() > 0;
+            success = command2.ExecuteNonQuery() > 0; // Checks if any rows have been changed
+        }
+        catch (SqliteException ex)
+        {
+            Logger.AppendError($"SQL error during note deletion", ex.Message);
+        }
         DisposeConnection(connection);
-        if (path == null)
-            return path;
+        return success && success2;
+    }
+    
+    public static string? GetNoteJson(string email, string title)
+    {
+        var path = GetNotePath(email, title);
         
         // Retrieving note content
         try
@@ -74,7 +84,6 @@ public static class DatabaseHandler // Parameterised SQL is used to prevent SQL 
         }
     }
     
-    // All below return 'true' on success
     public static bool PostNote(Note note, string email) // refactor and make naming less confusing
     {
         var guid = GetGuid(email);
@@ -86,7 +95,7 @@ public static class DatabaseHandler // Parameterised SQL is used to prevent SQL 
         // Writing to file
         var dir = Directory.GetCurrentDirectory() + $"/Notes/{guid}";
         Directory.CreateDirectory(dir);
-        var path = $"{dir}/{note.Title}.Json";
+        var path = $"{dir}/{id}.Json";
         File.WriteAllText(path, note.Serialise());
         
         // Updating database to reflect changes
@@ -206,6 +215,57 @@ public static class DatabaseHandler // Parameterised SQL is used to prevent SQL 
         
         DisposeConnection(connection);
         return exists;
+    }
+    
+    public static string? GetNoteTitles(string email)
+    {
+        var guid = GetGuid(email);
+        if (guid == null)
+            return null;
+
+        const string action = "SELECT tblNotes.Title FROM tblNotes " +
+                              "INNER JOIN tblUserNotes ON tblUserNotes.ID = tblNotes.ID " +
+                              "INNER JOIN tblAccounts ON tblAccounts.GUID = tblUserNotes.GUID " +
+                              "WHERE tblAccounts.GUID = @GUID";
+        
+        var connection = GetConnection();
+        using var command = new SqliteCommand(action, connection);
+        command.Parameters.AddWithValue("@GUID", guid);
+        
+        var titles = "";
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+            titles += reader.GetString(0) + "`";
+
+        DisposeConnection(connection);
+        
+        return titles == "" ? null : titles;
+    }
+    
+    private static string? GetNotePath(string email, string title)
+    {
+        var guid = GetGuid(email);
+        if (guid == null)
+            return null;
+
+        const string action = "SELECT tblNotes.Path FROM tblNotes " +
+                              "INNER JOIN tblUserNotes ON tblUserNotes.ID = tblNotes.ID " +
+                              "INNER JOIN tblAccounts ON tblAccounts.GUID = tblUserNotes.GUID " +
+                              "WHERE tblAccounts.GUID = @GUID " +
+                              "AND tblNotes.Title = @Title";
+        
+        var connection = GetConnection();
+        using var command = new SqliteCommand(action, connection);
+        command.Parameters.AddWithValue("@GUID", guid);
+        command.Parameters.AddWithValue("@Title", title);
+        
+        string? path = null;
+        using var reader = command.ExecuteReader();
+        if (reader.Read())
+            path = reader.GetString(0);
+        
+        DisposeConnection(connection);
+        return path;
     }
     
     private static string? GetGuid(string email)

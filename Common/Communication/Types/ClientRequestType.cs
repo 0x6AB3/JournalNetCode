@@ -7,5 +7,6 @@ public enum ClientRequestType
     PostNote,
     GetNote,
     LoginStatus,
-    GetNoteTitles
+    GetNoteTitles,
+    DeleteNote
 }

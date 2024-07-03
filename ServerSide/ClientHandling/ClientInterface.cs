@@ -91,6 +91,12 @@ public class ClientInterface
                     return;
                 response = RequestHandler.GetNoteTitles(_email);
                 break;
+            /////////////////////////////////////// DELETING USER NOTE ///////////////
+            case ClientRequestType.DeleteNote:
+                if (!LoginCheck())
+                    return;
+                response = RequestHandler.DeleteNote(clientRequest.Body, _email);
+                break;
             /////////////////////////////////////// ERRONEOUS ///////////////////////////
             default: 
                 DispatchError($"Unsupported ClientRequestType");
