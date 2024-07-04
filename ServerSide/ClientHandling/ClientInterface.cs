@@ -16,6 +16,13 @@ public class ClientInterface
     private HttpListenerContext? _context;
     private string? _email;
 
+    public ClientInterface(IPEndPoint endPoint)
+    {
+        RemoteEndPoint = endPoint;
+    }
+    
+    // If the client is logged in, this method returns their email and endpoint.
+    // Otherwise, just their endpoint is returned (as the client is not yet logged in)
     private string GetIdentifier()
     {
         var identifier = _email ?? "";
@@ -26,83 +33,92 @@ public class ClientInterface
         identifier += RemoteEndPoint;
         return identifier;
     }
-    
-    public ClientInterface(IPEndPoint endPoint)
-    {
-        RemoteEndPoint = endPoint;
-    }
 
+    // This method executes the request provided by the client
     public async Task Process(HttpListenerContext context)
     {
         _context = context;
         var request = _context.Request;
-        if (request.HttpMethod != "POST") // Expecting a 'POST' followed by a JSON string that deserialises to ClientRequest
+        
+        // Always expects an HTTP POST request that contains the actual client request
+        if (request.HttpMethod != "POST")
         {
-            DispatchError("Unsupported request; POST [ClientRequest JSON] instead");
+            DispatchError("Unsupported request; send a POST request with a valid ClientRequest JSON string instead");
             return;
         }
         
-        var clientRequest = await GetClientRequest(request); // Retrieving the POST request content provided by the client
-        if (clientRequest == null) // NULL CHECK
+        // Retrieving the ClientRequest object that the client includes in the POST request
+        var clientRequest = await GetClientRequest(request);
+        if (clientRequest == null)
         {   
-            DispatchError("Please provide a valid [ClientRequest JSON] with your POST request"); 
+            DispatchError("Please provide a valid [ClientRequest JSON] in your POST request"); 
             return;
         }
         Logger.AppendMessage($"Received {clientRequest.RequestType.ToString().ToLower()} request from {GetIdentifier()}");
         
         ServerResponse response;
         switch (clientRequest.RequestType)
-        {   /////////////////////////////////////// SIGNUP AND LOGIN ////////////////////////
+        {   /////////////////////////////////////// SIGNUP AND LOGIN ///////////////////////////////////////////////////
             case ClientRequestType.SignUp:
             case ClientRequestType.LogIn:
-                if (!clientRequest.TryGetLoginDetails(out var loginDetails)) // null check on loginDetails performed here
+                if (!clientRequest.TryGetLoginDetails(out var loginDetails)) // loginDetails null check performed here
                 {
-                    DispatchError("Unable to deserialise LoginDetails JSON");
+                    DispatchError("Unable to deserialise your LoginDetails");
                     return;
                 }
+                
+                // Performing login/signup (loginDetails is deserialised successfully by now)
+                // loginDetails null check is also performed here (todo redundant)
                 response = clientRequest.RequestType == ClientRequestType.SignUp
                     ? RequestHandler.HandleSignUp(loginDetails)
                     : RequestHandler.HandleLogIn(loginDetails);
                     
-                // Logger output
+                // Setting email to imply that client is logged in
+                // loginDetails has null checks in ClientRequest.TryGetLoginDetails and RequestHandler.cs
                 if (response.ResponseType == ServerResponseType.Success) 
-                    _email = loginDetails.Email; // Null check in RequestHandler.cs
+                    _email = loginDetails.Email; // loginDetails cannot be null here
                 break;
-            /////////////////////////////////////// NOTE UPLOAD /////////////////////////
+            /////////////////////////////////////// LOGIN STATUS CHECK /////////////////////////////////////////////////
+            case ClientRequestType.LoginStatus:
+                response = RequestHandler.LoginStatus(_email, RemoteEndPoint.ToString());
+                break;
+            /////////////////////////////////////// CLIENT NOTE --> SERVER /////////////////////////////////////////////
             case ClientRequestType.PostNote:
-                if (!LoginCheck())
+                if (!LoginCheck()) // Checks if client is logged in (client is informed and request is cancelled if not)
                     return;
+                if (clientRequest.Body == null)
+                {
+                    DispatchError("Please include a Note JSON string");
+                    return;
+                }
                 var note = JsonSerializer.Deserialize<Note>(clientRequest.Body);
-                response = RequestHandler.PostNote(note, _email); // null check performed by method LoginCheck()
+                response = RequestHandler.PostNote(note, _email); // _email null check performed by method LoginCheck()
                 break;
-            /////////////////////////////////////// NOTE DOWNLOAD ///////////////////////
+            /////////////////////////////////////// SERVER NOTE --> CLIENT /////////////////////////////////////////////
             case ClientRequestType.GetNote:
                 if (!LoginCheck())
                     return;
                 response = RequestHandler.GetNote(clientRequest.Body, _email);
                 break;
-            /////////////////////////////////////// STATUS CHECK ////////////////////////
-            case ClientRequestType.LoginStatus:
-                response = RequestHandler.LoginStatus(_email, RemoteEndPoint.ToString());
-                break;
-            /////////////////////////////////////// ALL OF USER'S NOTE TITLES ///////////////
+            
+            /////////////////////////////////////// STORED NOTE TITLES --> CLIENT //////////////////////////////////////
             case ClientRequestType.GetNoteTitles:
                 if (!LoginCheck())
                     return;
                 response = RequestHandler.GetNoteTitles(_email);
                 break;
-            /////////////////////////////////////// DELETING USER NOTE ///////////////
+            /////////////////////////////////////// NOTE DELETION //////////////////////////////////////////////////////
             case ClientRequestType.DeleteNote:
                 if (!LoginCheck())
                     return;
                 response = RequestHandler.DeleteNote(clientRequest.Body, _email);
                 break;
-            /////////////////////////////////////// DELETING USER ACCOUNT ///////////////
+            /////////////////////////////////////// ACCOUNT DELETION ///////////////////////////////////////////////////
             case ClientRequestType.DeleteAccount:
                 if (!LoginCheck())
                     return;
                 response = RequestHandler.DeleteAccount(_email);
-                _email = null;
+                _email = null; // Logging out the client
                 break;
             /////////////////////////////////////// ERRONEOUS ///////////////////////////
             default: 
@@ -114,20 +130,25 @@ public class ClientInterface
 
     private bool LoginCheck()
     {
-        if (_email == null) // Check if client is logged into an account
+        if (_email != null) // Check if client is logged into an account
         {
-            DispatchError("You are not logged in to an account in this session; sign-up/log-in to account before requesting PostNote");
-            return false;
+            return true;
         }
-        return true;
+        DispatchError("You are not logged in to an account in this session; " +
+                      "sign-up/log-in to account before requesting PostNote");
+        return false;
     }
 
-    // Gets ClientRequest object from the JSON that is included in POST
-    private static async Task<ClientRequest?> GetClientRequest(HttpListenerRequest post)
+    // This method retrieves the data that the client included in the POST request and 
+    // deserialises it into a ClientRequest object that is used to process that request
+    private static async Task<ClientRequest?> GetClientRequest(HttpListenerRequest postRequest)
     {
-        using var reader = new StreamReader(post.InputStream, post.ContentEncoding);
+        using var reader = new StreamReader(postRequest.InputStream, postRequest.ContentEncoding);
+        
+        // Deserialising the JSON to a ClientRequest object
         var clientRequestJson = await reader.ReadToEndAsync();
         var clientRequest = JsonSerializer.Deserialize<ClientRequest>(clientRequestJson);
+        
         return clientRequest;
     }    
     
@@ -146,7 +167,9 @@ public class ClientInterface
             response.OutputStream.Write(messageOut);
             response.OutputStream.Close();
             response.Close();
-            Logger.AppendMessage($"{serverResponse.Body} --> {GetIdentifier()}");
+            // Limit output to 100 characters
+            var outputMessage = serverResponse.Body?.Length < 100 ? serverResponse.Body : "JSON STRING";
+            Logger.AppendMessage($"{outputMessage} --> {GetIdentifier()}");
             return true;
         }
         catch (Exception ex)
@@ -160,7 +183,7 @@ public class ClientInterface
     {
         var serverResponse = new ServerResponse()
         {
-            Body = "Error with your request/sub-request (request should look exactly like: POST [ClientRequest JSON string])"
+            Body = "Error with your request... "
                    + $"Additional information: {addendum}",
             ResponseType = ServerResponseType.Failure
         };

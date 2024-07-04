@@ -27,7 +27,7 @@ public static class Logger
         PrintLog(log);
     }
 
-    public static void AppendError(string message, string addendum)
+    public static void AppendError(string message, string addendum = "None")
     {
         var error = new ErrorLog(message, addendum);
         PrintLog(error);

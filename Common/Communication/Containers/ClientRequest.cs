@@ -12,19 +12,24 @@ public sealed class ClientRequest : CommunicationContainer
     // Null check and deserialisation
     public bool TryGetLoginDetails(out LoginDetails? loginDetails)
     {
-        if (Body != null)
-        {
-            try
-            {
-                loginDetails = JsonSerializer.Deserialize<LoginDetails>(Body);
-                return true; // success
-            }
-            catch (JsonException ex)
-            {
-                Logger.AppendError("Error while deserialising LoginDetails JSON", ex.Message);
-            }
-        }
         loginDetails = null;
+        if (Body == null) // Missing LoginDetails JSON string in body
+        {
+            return false;
+        }
+        
+        try
+        {
+            loginDetails = JsonSerializer.Deserialize<LoginDetails>(Body);
+            if (loginDetails != null)
+                return true; // successful deserialisation
+            
+            Logger.AppendError("Unable to deserialise LoginDetails");
+        }
+        catch (JsonException ex)
+        {
+            Logger.AppendError("Error while deserialising LoginDetails JSON", ex.Message);
+        }
         return false;
     }
 }

@@ -63,6 +63,19 @@ public sealed class Note // AES GCM with 256-bit key used for encryption/decrypt
         return path;
     }
 
+    public void Delete()
+    {
+        try
+        {
+            var path = Path.Join(Directory.GetCurrentDirectory(), $"Notes/{Title}.json");
+            File.Delete(path);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"DEBUG: Unable to delete note, additional information: {ex.Message}");
+        }
+    }
+
     public override string ToString()
     {
         return $"Title: {Title}" +

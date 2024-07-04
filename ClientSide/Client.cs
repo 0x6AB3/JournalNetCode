@@ -134,7 +134,7 @@ public class Client
         {
             response.EnsureSuccessStatusCode();
             var responseContent = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"DEBUG: CLIENT POST [{message}] to {_ip}:{_port} GOT [{responseContent}]");
+            //Console.WriteLine($"DEBUG: CLIENT POST [{message}] to {_ip}:{_port} GOT [{responseContent}]");
             return responseContent;
         }
         catch (HttpRequestException ex)
