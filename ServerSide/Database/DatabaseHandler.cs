@@ -110,6 +110,11 @@ public static class DatabaseHandler // Parameterised SQL is used to prevent SQL 
     public static string? GetNoteJson(string email, string title)
     {
         var path = GetNotePath(email, title);
+        if (path == null) // Usually due to an invalid title
+        {
+            Logger.AppendWarn($"{email} attempted to retrieve a note that doesn't exist / belong to them");
+            return null;
+        }
         
         // Retrieving note content
         try
@@ -137,6 +142,13 @@ public static class DatabaseHandler // Parameterised SQL is used to prevent SQL 
         Directory.CreateDirectory(dir);
         var path = $"{dir}/{id}.Json";
         File.WriteAllText(path, note.Serialise());
+        
+        // Check if note already exists in the database
+        // (No need to update the database as path remains unchanged)
+        if (GetNoteJson(email, note.Title) != null)
+        {
+            return true;
+        }
         
         // Updating database to reflect changes
         const string action = "INSERT INTO tblNotes (ID, Path, Title) " +

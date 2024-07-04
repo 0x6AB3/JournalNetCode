@@ -36,7 +36,6 @@ public class Client
 
     public async Task<bool> LogIn(string emailAddress, string password)
     {
-        Console.WriteLine($"Attempting login with {emailAddress}:{password}");
         var details = new LoginDetails(emailAddress, password, out var encryptionKey);
         var detailsJson = Cast.ObjectToJson(details);
         
