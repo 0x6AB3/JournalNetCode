@@ -167,7 +167,7 @@ public class ClientInterface
             response.OutputStream.Write(messageOut);
             response.OutputStream.Close();
             response.Close();
-            // Limit output to 100 characters
+            // Limit output to 100 chars
             var outputMessage = serverResponse.Body?.Length < 100 ? serverResponse.Body : "JSON STRING";
             Logger.AppendMessage($"{outputMessage} --> {GetIdentifier()}");
             return true;

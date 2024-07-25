@@ -19,7 +19,14 @@ public static class DatabaseHandler // Parameterised SQL is used to prevent SQL 
         {
             foreach (var title in titles.Trim('`').Split('`'))
             {
-                DeleteNote(email, title);
+                try
+                {
+                    DeleteNote(email, title);
+                }
+                catch (Exception ex)
+                {
+                    Logger.AppendError($"Unable to delete note {title} for {email} during account deletion", ex.Message);
+                }
             }
         }
         
@@ -75,8 +82,18 @@ public static class DatabaseHandler // Parameterised SQL is used to prevent SQL 
             return false;
         
         var path = GetNotePath(email, title);
-        File.Delete(path);
-        
+        if (path != null)
+        {
+            try
+            {
+                File.Delete(path);
+            }
+            catch (Exception ex)
+            {
+                Logger.AppendError($"Unable to delete note {title} for {email} during note deletion", ex.Message);
+            }
+        }
+
         // todo merge these
         const string action2 = "DELETE FROM tblNotes " +
                               "WHERE tblNotes.ID = @ID " +
@@ -145,7 +162,7 @@ public static class DatabaseHandler // Parameterised SQL is used to prevent SQL 
         
         // Check if note already exists in the database
         // (No need to update the database as path remains unchanged)
-        if (GetNoteJson(email, note.Title) != null)
+        if (GetNotePath(email, note.Title) != null)
         {
             return true;
         }
