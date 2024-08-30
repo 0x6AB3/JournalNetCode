@@ -1,9 +1,12 @@
-﻿using System.Security.Cryptography;
+﻿using System.Diagnostics;
+using System.Security.Cryptography;
 using JournalNetCode.ServerSide;
 using JournalNetCode.ClientSide;
 using JournalNetCode.Common.Communication.Containers;
+using JournalNetCode.Common.Communication.Types;
 using JournalNetCode.Common.Security;
 using JournalNetCode.Common.Utility;
+using JournalNetCode.ServerSide.Logging;
 
 namespace JournalNetCode;
 
@@ -64,7 +67,44 @@ class Program
 */
         var journalServer = new Server("127.0.0.1", 9600, true);
         journalServer.Start();
-        Console.ReadLine();
+
+        // Example account and note creation
+        var email = "t@t.com";
+        var password = "testtest";
+        var argon = new PasswordHashing();
+        var encryptionKey = argon.GetEncryptionKey(password, email);
+        
+        var client = new Client("127.0.0.1", 9600); // Login + note title retrieval test
+        var loginSuccess = (await client.LogIn(email, password)).ResponseType == ServerResponseType.Success;
+        if (loginSuccess) // todo create signup alternative if login fails (check for serverresponsetype)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                var note = new Note($"{i+1}");
+                note.SetText($"Generated content GUID:\t{Guid.NewGuid().ToString()}", encryptionKey);
+                var postResponse = await client.PostNote(note);
+            }
+            
+            var retrievedNoteTitles = await client.GetNoteTitles();
+            var titlesNewLine = "";
+            foreach (var noteTitle in retrievedNoteTitles)
+            {
+                titlesNewLine += $"{noteTitle}\n";
+            }
+
+            titlesNewLine = titlesNewLine.Trim('\n');
+            var titlesDebugMessage = "";
+            titlesDebugMessage = titlesNewLine.Length == 0 ? 
+                  "No titles were retrieved"
+                : $"Client retrieved note titles:\n{titlesNewLine}";
+            Logger.AppendDebug(titlesDebugMessage);
+        }
+        
+        //var traffic = new Thread(() => SimulateTraffic());
+        //Logger.AppendMessage("Traffic simulation begun...");
+        //traffic.Start();
+        
+        /*Console.ReadLine();
         var traffic1 = new Thread(() => SimulateTraffic());
         var traffic2 = new Thread(() => SimulateTraffic());
         var traffic3 = new Thread(() => SimulateTraffic());
@@ -74,8 +114,9 @@ class Program
         traffic3.Start();
         traffic4.Start();
         Console.WriteLine("ALL TRAFFIC THREADS STARTED");
-        Console.ReadLine();
-        
-        journalServer.Stop();
+        */
+        if (Console.ReadLine() == "x")
+            Logger.AppendWarn("Exit requested...");
+            journalServer.Stop();
     }
 }

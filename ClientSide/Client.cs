@@ -24,47 +24,47 @@ public class Client
         _client = new HttpClient();
     }
 
-    public async Task<bool> SignUp(string emailAddress, string password)
+    public async Task<ServerResponse> SignUp(string emailAddress, string password)
     {
         //Console.WriteLine($"Attempting signup with {emailAddress}:{password}");
         var details = new LoginDetails(emailAddress, password, out var encryptionKey);
         var detailsJson = Cast.ObjectToJson(details);
         
-        var request = new ClientRequest() { Body = detailsJson, RequestType = ClientRequestType.SignUp };
+        var request = new ClientRequest(ClientRequestType.SignUp, detailsJson);
         return await SendRequest(request);
     }
 
-    public async Task<bool> LogIn(string emailAddress, string password)
+    public async Task<ServerResponse> LogIn(string emailAddress, string password)
     {
         var details = new LoginDetails(emailAddress, password, out var encryptionKey);
         var detailsJson = Cast.ObjectToJson(details);
         
-        var request = new ClientRequest() { Body = detailsJson, RequestType = ClientRequestType.LogIn };
+        var request = new ClientRequest(ClientRequestType.LogIn, detailsJson);
         return await SendRequest(request);
     }
     
-    public async Task<bool> GetLoggedIn()
+    public async Task<ServerResponse> GetLoggedIn()
     {
-        var request = new ClientRequest() { RequestType = ClientRequestType.LoginStatus };
+        var request = new ClientRequest(ClientRequestType.LoginStatus);
         return await SendRequest(request);
     }
     
-    public async Task<bool> PostNote(Note note)
+    public async Task<ServerResponse> PostNote(Note note)
     {
         var noteJson = note.Serialise();
-        var request = new ClientRequest() {Body = noteJson, RequestType = ClientRequestType.PostNote };
+        var request = new ClientRequest(ClientRequestType.PostNote, noteJson);
         return await SendRequest(request);
     }
 
-    public async Task<bool> GetNote(string name)
+    public async Task<ServerResponse> GetNote(string name)
     {
-        var request = new ClientRequest() { Body = name, RequestType = ClientRequestType.GetNote };
+        var request = new ClientRequest(ClientRequestType.GetNote, name);
         return await SendRequest(request);
     }
 
     public async Task<string[]?> GetNoteTitles() // Grabs all note names that belong to the user in the database
     {
-        var request = new ClientRequest() { RequestType = ClientRequestType.GetNoteTitles };
+        var request = new ClientRequest(ClientRequestType.GetNoteTitles);
         await SendRequest(request);
         string[]? titles = null;
         
@@ -81,32 +81,54 @@ public class Client
         return titles;
     }
 
-    public async Task<bool> DeleteNote(string name)
+    public async Task<ServerResponse> DeleteNote(string name)
     {
-        var request = new ClientRequest() { Body = name, RequestType = ClientRequestType.DeleteNote };
+        var request = new ClientRequest(ClientRequestType.DeleteNote, name);
         return await SendRequest(request);
     }
     
-    public async Task<bool> DeleteAccount()
+    public async Task<ServerResponse> DeleteAccount()
     {
-        var request = new ClientRequest() { RequestType = ClientRequestType.DeleteAccount };
+        var request = new ClientRequest(ClientRequestType.DeleteAccount);
         return await SendRequest(request);
     }
 
-    private async Task<bool> SendRequest(ClientRequest request)
+    private ServerResponse GenerateNullResponse()
+    {
+        var nullResponse = new ServerResponse(ServerResponseType.NullResponse);
+        return nullResponse;
+    }
+
+    private async Task<ServerResponse> SendRequest(ClientRequest request)
     {
         var requestJson = request.Serialise();
-        
         var responseJson = await SendContent(requestJson);
-        if (responseJson == null) { return false; } // null check
+
+        if (responseJson == null)
+        {
+            return GenerateNullResponse();
+        }
+        
         var response = JsonSerializer.Deserialize<ServerResponse>(responseJson);
-        var success = response.ResponseType == ServerResponseType.Success;
-        if (request.RequestType == ClientRequestType.GetNote && success)
+        
+        if (response == null)
+        {
+            return GenerateNullResponse();
+        }
+
+
+        if (request.RequestType == ClientRequestType.GetNote && response.ResponseType == ServerResponseType.Success)
+        {
+            if (response.Body == null)
+            {
+                return new ServerResponse(ServerResponseType.InvalidParameters, "Note is empty");
+            }
             JsonSerializer.Deserialize<Note>(response.Body).ToFile(); // Saving to non-volatile location (Notes/)
-        else if (request.RequestType == ClientRequestType.GetNoteTitles && success)
+        }
+        else if (request.RequestType == ClientRequestType.GetNoteTitles && response.ResponseType == ServerResponseType.Success)
             File.WriteAllText("./temp.txt", response.Body); // TODO REFACTOR CLIENT TO DO THIS EFFICIENTLY
         
-        return success;
+        return response;
     }
 
     private async Task<string?> ReceiveContent() // used during first demo, not needed for now as POST is used for sending requests

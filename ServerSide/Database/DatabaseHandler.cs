@@ -152,20 +152,21 @@ public static class DatabaseHandler // Parameterised SQL is used to prevent SQL 
         if (guid == null)
             return false;
         
-        var id = Guid.NewGuid().ToString();
-        
-        // Writing to file
-        var dir = Directory.GetCurrentDirectory() + $"/Notes/{guid}";
-        Directory.CreateDirectory(dir);
-        var path = $"{dir}/{id}.Json";
-        File.WriteAllText(path, note.Serialise());
-        
         // Check if note already exists in the database
         // (No need to update the database as path remains unchanged)
-        if (GetNotePath(email, note.Title) != null)
+        var existingPath = GetNotePath(email, note.Title);
+        if (existingPath != null)
         {
+            File.WriteAllText(existingPath, note.Serialise());
             return true;
         }
+        
+        // Storing as new note
+        var id = Guid.NewGuid().ToString();
+        var dir = Directory.GetCurrentDirectory() + $"/Notes/{guid}";
+        var path = $"{dir}/{id}.Json";
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(path, note.Serialise());
         
         // Updating database to reflect changes
         const string action = "INSERT INTO tblNotes (ID, Path, Title) " +

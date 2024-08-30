@@ -5,13 +5,12 @@ using Konscious.Security.Cryptography;
 
 namespace JournalNetCode.Common.Security;
 
-// Argon2
-public class PasswordHashing
+public class PasswordHashing // Argon2 is used as the key derivation function
 {
     private readonly int _iterations;
     private const int OutputLength = 32; // (bytes) 256-bit key/hash
     
-    public PasswordHashing(int iterations = 50)
+    public PasswordHashing(int iterations = 50) // todo change default iterations to a more cryptographically secure quantity
     {
         _iterations = iterations;
     }

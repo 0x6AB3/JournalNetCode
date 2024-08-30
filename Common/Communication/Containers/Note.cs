@@ -17,6 +17,8 @@ public sealed class Note // AES GCM with 256-bit key used for encryption/decrypt
     [JsonInclude]
     public DateTime LastModified { get; private set; }
     
+    public bool Upload = false;
+    
     [JsonConstructor]
     public Note(string title, byte[] internalData, byte[] initVector, byte[] securityTag, DateTime lastModified)
     {

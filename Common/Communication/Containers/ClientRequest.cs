@@ -2,12 +2,21 @@
 using JournalNetCode.ServerSide.ClientHandling;
 using JournalNetCode.ServerSide.Logging;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace JournalNetCode.Common.Communication.Containers;
 
 public sealed class ClientRequest : CommunicationContainer
 {
-    public ClientRequestType RequestType { get; set; }
+    [JsonInclude]
+    public ClientRequestType RequestType { get; private set; }
+
+    [JsonConstructor]
+    public ClientRequest(ClientRequestType RequestType, string? Body = null)
+    {
+        this.RequestType = RequestType;
+        this.Body = Body;
+    }
 
     // Null check and deserialisation
     public bool TryGetLoginDetails(out LoginDetails? loginDetails)

@@ -39,6 +39,12 @@ public static class Logger
         PrintLog(warn);
     }
 
+    public static void AppendDebug(string message)
+    {
+        var debug = new DebugLog(message);
+        PrintLog(debug);
+    }
+
     private static void PrintLog(Log log)
     {
         AddLog(log);

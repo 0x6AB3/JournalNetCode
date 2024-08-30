@@ -1,11 +1,8 @@
 ﻿using System.Net;
-using System.Runtime.Intrinsics.Arm;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using JournalNetCode.Common.Communication.Containers;
 using JournalNetCode.Common.Communication.Types;
 using JournalNetCode.Common.Utility;
-using JournalNetCode.ServerSide.Database;
 using JournalNetCode.ServerSide.Logging;
 
 namespace JournalNetCode.ServerSide.ClientHandling;
@@ -43,7 +40,7 @@ public class ClientInterface
         // Always expects an HTTP POST request that contains the actual client request
         if (request.HttpMethod != "POST")
         {
-            DispatchError("Unsupported request; send a POST request with a valid ClientRequest JSON string instead");
+            DispatchError(ServerResponseType.InvalidRequest, "Unsupported request; send a POST request with a valid ClientRequest JSON string instead");
             return;
         }
         
@@ -51,10 +48,10 @@ public class ClientInterface
         var clientRequest = await GetClientRequest(request);
         if (clientRequest == null)
         {   
-            DispatchError("Please provide a valid [ClientRequest JSON] in your POST request"); 
+            DispatchError(ServerResponseType.InvalidRequest, "Please provide a valid [ClientRequest JSON] in your POST request"); 
             return;
         }
-        Logger.AppendMessage($"Received {clientRequest.RequestType.ToString().ToLower()} request from {GetIdentifier()}");
+        Logger.AppendMessage($"[{clientRequest.RequestType.ToString()}] <-- RX -- {GetIdentifier()}");
         
         ServerResponse response;
         switch (clientRequest.RequestType)
@@ -63,7 +60,7 @@ public class ClientInterface
             case ClientRequestType.LogIn:
                 if (!clientRequest.TryGetLoginDetails(out var loginDetails)) // loginDetails null check performed here
                 {
-                    DispatchError("Unable to deserialise your LoginDetails");
+                    DispatchError(ServerResponseType.InvalidRequest, "Unable to deserialise your LoginDetails");
                     return;
                 }
                 
@@ -82,61 +79,39 @@ public class ClientInterface
             case ClientRequestType.LoginStatus:
                 response = RequestHandler.LoginStatus(_email, RemoteEndPoint.ToString());
                 break;
-            /////////////////////////////////////// CLIENT NOTE --> SERVER /////////////////////////////////////////////
+            /////////////////////////////////////// SERVER <-- RX -- CLIENT NOTE ///////////////////////////////////////
             case ClientRequestType.PostNote:
-                if (!LoginCheck()) // Checks if client is logged in (client is informed and request is cancelled if not)
-                    return;
                 if (clientRequest.Body == null)
                 {
-                    DispatchError("Please include a Note JSON string");
+                    DispatchError(ServerResponseType.InvalidRequest, "Please include a Note JSON string");
                     return;
                 }
                 var note = JsonSerializer.Deserialize<Note>(clientRequest.Body);
                 response = RequestHandler.PostNote(note, _email); // _email null check performed by method LoginCheck()
                 break;
-            /////////////////////////////////////// SERVER NOTE --> CLIENT /////////////////////////////////////////////
+            /////////////////////////////////////// NOTE -- TX --> CLIENT //////////////////////////////////////////////
             case ClientRequestType.GetNote:
-                if (!LoginCheck())
-                    return;
                 response = RequestHandler.GetNote(clientRequest.Body, _email);
                 break;
-            
-            /////////////////////////////////////// STORED NOTE TITLES --> CLIENT //////////////////////////////////////
+            /////////////////////////////////////// NOTE TITLES -- TX --> CLIENT ///////////////////////////////////////
             case ClientRequestType.GetNoteTitles:
-                if (!LoginCheck())
-                    return;
                 response = RequestHandler.GetNoteTitles(_email);
                 break;
-            /////////////////////////////////////// NOTE DELETION //////////////////////////////////////////////////////
+            /////////////////////////////////////// DELETE NOTE ////////////////////////////////////////////////////////
             case ClientRequestType.DeleteNote:
-                if (!LoginCheck())
-                    return;
                 response = RequestHandler.DeleteNote(clientRequest.Body, _email);
                 break;
             /////////////////////////////////////// ACCOUNT DELETION ///////////////////////////////////////////////////
             case ClientRequestType.DeleteAccount:
-                if (!LoginCheck())
-                    return;
                 response = RequestHandler.DeleteAccount(_email);
                 _email = null; // Logging out the client
                 break;
             /////////////////////////////////////// ERRONEOUS ///////////////////////////
             default: 
-                DispatchError($"Unsupported ClientRequestType");
+                DispatchError(ServerResponseType.InvalidRequest, "Unsupported ClientRequestType");
                 return;
         }
         DispatchResponse(response);
-    }
-
-    private bool LoginCheck()
-    {
-        if (_email != null) // Check if client is logged into an account
-        {
-            return true;
-        }
-        DispatchError("You are not logged in to an account in this session; " +
-                      "sign-up/log-in to account before requesting PostNote");
-        return false;
     }
 
     // This method retrieves the data that the client included in the POST request and 
@@ -167,9 +142,7 @@ public class ClientInterface
             response.OutputStream.Write(messageOut);
             response.OutputStream.Close();
             response.Close();
-            // Limit output to 100 chars
-            var outputMessage = serverResponse.Body?.Length < 100 ? serverResponse.Body : "JSON STRING";
-            Logger.AppendMessage($"{outputMessage} --> {GetIdentifier()}");
+            Logger.AppendMessage($"[{serverResponse.ResponseType}] -- TX --> {GetIdentifier()}");
             return true;
         }
         catch (Exception ex)
@@ -179,15 +152,10 @@ public class ClientInterface
         }
     }
     
-    private void DispatchError(string addendum = "None")
+    private void DispatchError(ServerResponseType errorType, string addendum = "None")
     {
-        var serverResponse = new ServerResponse()
-        {
-            Body = "Error with your request... "
-                   + $"Additional information: {addendum}",
-            ResponseType = ServerResponseType.Failure
-        };
-        Logger.AppendWarn($"{GetIdentifier()} Invalid POST request: {addendum}");
+        var serverResponse = new ServerResponse(errorType, addendum);
+        Logger.AppendWarn($"{GetIdentifier()} Invalid POST request ({errorType}): {addendum}");
         DispatchResponse(serverResponse);
     }
 }
