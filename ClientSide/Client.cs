@@ -45,17 +45,18 @@ public class Client
         return (response.ResponseType == ServerResponseType.Success, response.Body);
     }
     
-    public async Task<ServerResponse> GetLoggedIn()
+    public async Task<bool> GetLoggedIn()
     {
         var request = new ClientRequest(ClientRequestType.LoginStatus);
-        return await SendRequest(request);
+        return (await SendRequest(request)).ResponseType == ServerResponseType.Success;
     }
     
-    public async Task<ServerResponse> PostNote(Note note)
+    public async Task<(bool, string?)> PostNote(Note note)
     {
         var noteJson = note.Serialise();
         var request = new ClientRequest(ClientRequestType.PostNote, noteJson);
-        return await SendRequest(request);
+        var response = await SendRequest(request);
+        return (response.ResponseType == ServerResponseType.Success, response.Body);
     }
 
     public async Task<Note?> GetNote(string name)
@@ -92,10 +93,10 @@ public class Client
         return response.ResponseType == ServerResponseType.Success;
     }
     
-    public async Task<ServerResponse> DeleteAccount()
+    public async Task<bool> DeleteAccount()
     {
         var request = new ClientRequest(ClientRequestType.DeleteAccount);
-        return await SendRequest(request);
+        return (await SendRequest(request)).ResponseType == ServerResponseType.Success;
     }
 
     private ServerResponse GenerateNullResponse()
@@ -115,23 +116,8 @@ public class Client
         }
         
         var response = JsonSerializer.Deserialize<ServerResponse>(responseJson);
-        
-        if (response == null)
-        {
-            return GenerateNullResponse();
-        }
 
-        // todo
-        if (request.RequestType == ClientRequestType.GetNote && response.ResponseType == ServerResponseType.Success)
-        {
-            if (response.Body == null)
-            {
-                return new ServerResponse(ServerResponseType.InvalidParameters, "Note is empty");
-            }
-            JsonSerializer.Deserialize<Note>(response.Body).ToFile(); // Saving to non-volatile location (Notes/)
-        }
-        
-        return response;
+        return response != null ? response : GenerateNullResponse();
     }
 
     private async Task<string?> ReceiveContent() // used during first demo, not needed for now as POST is used for sending requests
