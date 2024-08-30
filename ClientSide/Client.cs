@@ -65,20 +65,14 @@ public class Client
     public async Task<string[]?> GetNoteTitles() // Grabs all note names that belong to the user in the database
     {
         var request = new ClientRequest(ClientRequestType.GetNoteTitles);
-        await SendRequest(request);
-        string[]? titles = null;
+        var response = await SendRequest(request);
         
-        try
+        if (response.ResponseType != ServerResponseType.Success)
         {
-            titles = File.ReadAllText("./temp.txt").Trim('`').Split("`");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Unable to retrieve your notes from the server (are you logged in and have uploaded notes?)" +
-                              $"\n{ex.Message}");
+            return null;
         }
 
-        return titles;
+        return response.Body?.Split('`');
     }
 
     public async Task<ServerResponse> DeleteNote(string name)
@@ -125,8 +119,6 @@ public class Client
             }
             JsonSerializer.Deserialize<Note>(response.Body).ToFile(); // Saving to non-volatile location (Notes/)
         }
-        else if (request.RequestType == ClientRequestType.GetNoteTitles && response.ResponseType == ServerResponseType.Success)
-            File.WriteAllText("./temp.txt", response.Body); // TODO REFACTOR CLIENT TO DO THIS EFFICIENTLY
         
         return response;
     }
