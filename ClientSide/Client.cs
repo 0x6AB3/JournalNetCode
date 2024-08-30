@@ -24,23 +24,25 @@ public class Client
         _client = new HttpClient();
     }
 
-    public async Task<ServerResponse> SignUp(string emailAddress, string password)
+    private async Task<ServerResponse> SendLoginDetails(string emailAddress, string password, ClientRequestType type)
     {
-        //Console.WriteLine($"Attempting signup with {emailAddress}:{password}");
         var details = new LoginDetails(emailAddress, password, out var encryptionKey);
         var detailsJson = Cast.ObjectToJson(details);
         
-        var request = new ClientRequest(ClientRequestType.SignUp, detailsJson);
+        var request = new ClientRequest(type, detailsJson);
         return await SendRequest(request);
     }
 
-    public async Task<ServerResponse> LogIn(string emailAddress, string password)
+    public async Task<(bool, string?)> SignUp(string emailAddress, string password)
     {
-        var details = new LoginDetails(emailAddress, password, out var encryptionKey);
-        var detailsJson = Cast.ObjectToJson(details);
-        
-        var request = new ClientRequest(ClientRequestType.LogIn, detailsJson);
-        return await SendRequest(request);
+        var response = await SendLoginDetails(emailAddress, password, ClientRequestType.SignUp);
+        return (response.ResponseType == ServerResponseType.Success, response.Body);
+    }
+
+    public async Task<(bool, string?)> LogIn(string emailAddress, string password)
+    {
+        var response = await SendLoginDetails(emailAddress, password, ClientRequestType.LogIn);
+        return (response.ResponseType == ServerResponseType.Success, response.Body);
     }
     
     public async Task<ServerResponse> GetLoggedIn()

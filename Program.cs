@@ -79,7 +79,7 @@ class Program
         var encryptionKey = argon.GetEncryptionKey(password, email);
 
         var client = new Client("127.0.0.1", 9600); // Login + note title retrieval test
-        var loginSuccess = (await client.LogIn(email, password)).ResponseType == ServerResponseType.Success;
+        (var loginSuccess, var message) = await client.LogIn(email, password);
         if (loginSuccess) // todo create signup alternative if login fails (check for serverresponsetype)
         {
             for (var i = 0; i < 3; i++)
