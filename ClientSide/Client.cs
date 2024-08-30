@@ -56,10 +56,18 @@ public class Client
         return await SendRequest(request);
     }
 
-    public async Task<ServerResponse> GetNote(string name)
+    public async Task<Note?> GetNote(string name)
     {
         var request = new ClientRequest(ClientRequestType.GetNote, name);
-        return await SendRequest(request);
+        var response = await SendRequest(request);
+
+        if (string.IsNullOrEmpty(response.Body))
+        {
+            return null;
+        }
+        
+        var note = JsonSerializer.Deserialize<Note>(response.Body);
+        return note;
     }
 
     public async Task<string[]?> GetNoteTitles() // Grabs all note names that belong to the user in the database
@@ -75,10 +83,11 @@ public class Client
         return response.Body?.Split('`');
     }
 
-    public async Task<ServerResponse> DeleteNote(string name)
+    public async Task<bool> DeleteNote(string name)
     {
         var request = new ClientRequest(ClientRequestType.DeleteNote, name);
-        return await SendRequest(request);
+        var response = await SendRequest(request);
+        return response.ResponseType == ServerResponseType.Success;
     }
     
     public async Task<ServerResponse> DeleteAccount()
@@ -110,7 +119,7 @@ public class Client
             return GenerateNullResponse();
         }
 
-
+        // todo
         if (request.RequestType == ClientRequestType.GetNote && response.ResponseType == ServerResponseType.Success)
         {
             if (response.Body == null)

@@ -9,5 +9,6 @@ public enum ClientRequestType
     LoginStatus,
     GetNoteTitles,
     DeleteNote,
-    DeleteAccount
+    DeleteAccount,
+    Proceed // todo implement for note overwritting in client software
 }

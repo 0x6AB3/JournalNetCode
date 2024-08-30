@@ -38,8 +38,11 @@ class Program
             if (random.Next(1, 4) == 1)
             {
                 var titles = await demoClient.GetNoteTitles();
-                await demoClient.GetNote(titles != null && titles.Length > 0 ? titles[random.Next(titles.Length)] : note.Title);
+                await demoClient.GetNote(titles != null && titles.Length > 0
+                    ? titles[random.Next(titles.Length)]
+                    : note.Title);
             }
+
             if (random.Next(1, 4) == 1)
                 await demoClient.GetLoggedIn();
             if (random.Next(1, 4) == 1)
@@ -47,6 +50,7 @@ class Program
                 await demoClient.DeleteNote(note.Title);
                 note.Delete();
             }
+
             if (random.Next(1, 4) == 1)
                 await demoClient.DeleteAccount();
 
@@ -58,7 +62,7 @@ class Program
             }
         }
     }
-    
+
     static async Task Main()
     {
         /*
@@ -73,18 +77,18 @@ class Program
         var password = "testtest";
         var argon = new PasswordHashing();
         var encryptionKey = argon.GetEncryptionKey(password, email);
-        
+
         var client = new Client("127.0.0.1", 9600); // Login + note title retrieval test
         var loginSuccess = (await client.LogIn(email, password)).ResponseType == ServerResponseType.Success;
         if (loginSuccess) // todo create signup alternative if login fails (check for serverresponsetype)
         {
-            for (int i = 0; i < 3; i++)
+            for (var i = 0; i < 3; i++)
             {
-                var note = new Note($"{i+1}");
+                var note = new Note($"{i + 1}");
                 note.SetText($"Generated content GUID:\t{Guid.NewGuid().ToString()}", encryptionKey);
                 var postResponse = await client.PostNote(note);
             }
-            
+
             var retrievedNoteTitles = await client.GetNoteTitles();
             var titlesNewLine = "";
             foreach (var noteTitle in retrievedNoteTitles)
@@ -94,29 +98,46 @@ class Program
 
             titlesNewLine = titlesNewLine.Trim('\n');
             var titlesDebugMessage = "";
-            titlesDebugMessage = titlesNewLine.Length == 0 ? 
-                  "No titles were retrieved"
+            titlesDebugMessage = titlesNewLine.Length == 0
+                ? "No titles were retrieved"
                 : $"Client retrieved note titles:\n{titlesNewLine}";
             Logger.AppendDebug(titlesDebugMessage);
+
+            var titles = await client.GetNoteTitles();
+            if (titles == null)
+            {
+                Logger.AppendDebug("No notes to retrieve");
+            }
+            else
+            {
+                foreach (var title in titles)
+                {
+                    var note = await client.GetNote(title);
+                    if (note != null)
+                    {
+                        Logger.AppendDebug($"Retrieved note {title}");
+                        var success = await client.DeleteNote(title);
+                        if (success)
+                        {
+                            Logger.AppendDebug($"Deleted note {title} from server");
+                        }
+                        else
+                        {
+                            Logger.AppendError($"Unable to delete note {title} from server");
+                        }
+                    }
+                    else
+                    {
+                        Logger.AppendError($"Unable to retrieve note {title}");
+                    }
+                }
+            }
+
+            if (Console.ReadLine() == "x")
+            {
+                Logger.AppendWarn("Exit requested...");
+                journalServer.Stop();
+            }
         }
-        
-        //var traffic = new Thread(() => SimulateTraffic());
-        //Logger.AppendMessage("Traffic simulation begun...");
-        //traffic.Start();
-        
-        /*Console.ReadLine();
-        var traffic1 = new Thread(() => SimulateTraffic());
-        var traffic2 = new Thread(() => SimulateTraffic());
-        var traffic3 = new Thread(() => SimulateTraffic());
-        var traffic4 = new Thread(() => SimulateTraffic());
-        traffic1.Start();
-        traffic2.Start();
-        traffic3.Start();
-        traffic4.Start();
-        Console.WriteLine("ALL TRAFFIC THREADS STARTED");
-        */
-        if (Console.ReadLine() == "x")
-            Logger.AppendWarn("Exit requested...");
-            journalServer.Stop();
     }
 }

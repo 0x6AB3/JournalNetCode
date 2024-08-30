@@ -10,5 +10,6 @@ public enum ServerResponseType
     InvalidLogin,
     ServersideError,
     InvalidRequest, // used in Client.cs outside of RequestHandler (client request json checks)
-    NullResponse // Used only by client during null check
+    NullResponse, // Used only by client during null check
+    Confirm
 }

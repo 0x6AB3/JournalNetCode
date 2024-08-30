@@ -309,7 +309,7 @@ public static class DatabaseHandler // Parameterised SQL is used to prevent SQL 
 
         DisposeConnection(connection);
         
-        return titles == "" ? null : titles;
+        return titles == "" ? null : titles.Trim('`');
     }
     
     private static string? GetNotePath(string email, string title)
