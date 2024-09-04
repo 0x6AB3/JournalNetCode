@@ -61,7 +61,9 @@ public class Server
                     client = new ClientInterface(context.Request.RemoteEndPoint);
                     ClientCollection.AddClient(client);
                 }
-                await client.Process(context);
+
+                var processThread = new Thread(new ParameterizedThreadStart(client.Process));
+                processThread.Start(context);
             }
             catch (Exception ex)
             {

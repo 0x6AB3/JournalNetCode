@@ -32,9 +32,12 @@ public class ClientInterface
     }
 
     // This method executes the request provided by the client
-    public async Task Process(HttpListenerContext context)
+    public async void Process(object? context) // object type used as this method runs on a new thread
     {
-        _context = context;
+        if (context == null || context.GetType() != typeof(HttpListenerContext))
+            return; // expecting a HttpListenerContext object
+        
+        _context = (HttpListenerContext)context;
         var request = _context.Request;
         
         // Always expects an HTTP POST request that contains the actual client request

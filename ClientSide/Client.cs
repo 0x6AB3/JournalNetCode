@@ -59,18 +59,18 @@ public class Client
         return (response.ResponseType == ServerResponseType.Success, response.Body);
     }
 
-    public async Task<Note?> GetNote(string name)
+    public async Task<(Note?, string?)> GetNote(string name)
     {
         var request = new ClientRequest(ClientRequestType.GetNote, name);
         var response = await SendRequest(request);
 
         if (string.IsNullOrEmpty(response.Body))
         {
-            return null;
+            return (null, "Unable to download this note");
         }
         
         var note = JsonSerializer.Deserialize<Note>(response.Body);
-        return note;
+        return (note, response.Body);
     }
 
     public async Task<string[]?> GetNoteTitles() // Grabs all note names that belong to the user in the database

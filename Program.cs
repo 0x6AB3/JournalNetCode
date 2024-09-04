@@ -62,7 +62,7 @@ class Program
             {
                 foreach (var title in titles)
                 {
-                    var note = await client.GetNote(title);
+                    (var note, var serverMessage) = await client.GetNote(title);
                     if (note != null)
                     {
                         Logger.AppendDebug($"Retrieved note {title}");
