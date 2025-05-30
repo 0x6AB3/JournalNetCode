@@ -1,5 +1,7 @@
 This project implements a client-server note-sharing system in C#. It supports secure user authentication, note encryption, and structured request/response handling over HTTP.
 
+![{E8C1F7CC-2B49-41F6-923B-26AB9F9A8F2B}](https://github.com/user-attachments/assets/6f87dd56-a77c-4414-8fc3-82fe12139a02)
+
 **SERVER-SIDE**
 
 **Server.cs (ClientHandling):**
